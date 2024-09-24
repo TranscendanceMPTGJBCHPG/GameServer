@@ -39,7 +39,7 @@ class Game:
         self.DIFFICULTY = 3
         self.SAVING = True
         self.TRAINING = True
-        self.TRAININGPARTNER = False
+        self.TRAININGPARTNER = True
         self.LOADING = True
         self.testing = True
         self.lastDump = 0
