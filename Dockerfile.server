@@ -1,0 +1,28 @@
+# Dockerfile for Daphne Server
+
+# Use an official Python runtime as a parent image
+FROM python:3.12-slim
+
+# Set environment variables
+#ENV PYTHONDONTWRITEBYTECODE 1
+#ENV PYTHONUNBUFFERED 1
+
+# Set work directory
+WORKDIR /app
+
+# Install dependencies
+COPY GameServer/requirements.txt /app/
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy the application code
+COPY ./GameServer /app/
+
+# Expose the port Daphne will run on
+EXPOSE 8000
+
+
+WORKDIR /app/PongGame
+
+# Command to start the Daphne server
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "PongGame.asgi:application"]
+

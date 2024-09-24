@@ -1,0 +1,7 @@
+websockets
+pygame
+numpy
+django
+channels
+daphne
+django-cors-headers
