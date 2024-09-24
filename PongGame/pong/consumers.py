@@ -38,20 +38,22 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper = GameSingleton.get_game()
         self.game_wrapper.present_players += 1
         if self.game_wrapper.present_players == 2:
-            self.logger.info("Main client connected")
-            self.logger.info(f"number of connected clients: {self.game_wrapper.present_players}")
+            # self.logger.info("Main client connected")
+            # self.logger.info(f"number of connected clients: {self.game_wrapper.present_players}")
             self.is_main = True
             self.game_wrapper.all_players_connected.set()
-        self.logger.info(f"PongConsumer connected and added to group 'pong': {self.channel_name}")
+        # self.logger.info(f"PongConsumer connected and added to group 'pong': {self.channel_name}")
 
         if self.is_main is True:
             asyncio.ensure_future(self.generate_states())
+
 
     async def disconnect(self, close_code):
         # Déconnecter WebSocket proprement
         await self.channel_layer.group_discard("pong", self.channel_name)
         del self.clients[self.channel_name]
         self.game_wrapper.present_players -= 1
+
 
     async def receive(self, text_data):
         # Traiter les messages reçus du client
@@ -96,10 +98,11 @@ class PongConsumer(AsyncWebsocketConsumer):
             ai_data["difficulty"] = 0
         else:
             ai_data["difficulty"] = self.game_wrapper.game.DIFFICULTY
-        self.logger.info(f"Sending AI setup instructions: {ai_data}")
+        # self.logger.info(f"Sending AI setup instructions: {ai_data}")
         await self.send(json.dumps(ai_data))
         self.game_wrapper.ai_is_initialized.set()
         await asyncio.sleep(0.00000001)
+
 
     async def handle_front_input(self, event):
         self.client = FRONT
@@ -107,40 +110,75 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["type"] == "greetings":
             return
         elif event["type"] == "start":
-            self.logger.info(f"start event: {event}")
+            # self.logger.info(f"start event: {event}")
             self.game_wrapper.start_event.set()
 
         elif event["type"] == "resumeOnGoal":
-            logging.info(f"resume on goal event: {event}")
+            # logging.info(f"resume on goal event: {event}")
             await self.game_wrapper.game.resume_on_goal()
-            logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
+            # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
 
         elif event["type"] == "keyDown":
-            # logging.info(f"key down event: {event}")
+            logging.info(f"key down event: {event}")
 
             if event["event"] == "pause":
                 self.game_wrapper.game.pause = not self.game_wrapper.game.pause
 
             elif event["event"] == "player1Up":
-                for _ in range(10):
+                if not self.game_wrapper.game.p1_successive_inputs:
+                    self.game_wrapper.game.p1_successive_inputs.append('up')
+                    self.game_wrapper.game.p1_successive_inputs.append(1)
+                else:
+                    if self.game_wrapper.game.p1_successive_inputs[0] == 'up':
+                        if self.game_wrapper.game.p1_successive_inputs[1] < 50:
+                            self.game_wrapper.game.p1_successive_inputs[1] += 1
+                        
+                    else:
+                        self.game_wrapper.game.p1_successive_inputs.clear()
+                        self.game_wrapper.game.p1_successive_inputs.append('up')
+                        self.game_wrapper.game.p1_successive_inputs.append(1)
+
+                # for _ in range(self.game_wrapper.game.p1_successive_inputs[1]//5 + 2):
+                for _ in range(5):
                     self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
 
             elif event["event"] == "player1Down":
-                for _ in range(10):
+                if not self.game_wrapper.game.p1_successive_inputs:
+                    self.game_wrapper.game.p1_successive_inputs.append('down')
+                    self.game_wrapper.game.p1_successive_inputs.append(1)
+                else:
+                    if self.game_wrapper.game.p1_successive_inputs[0] == 'down':
+                        if self.game_wrapper.game.p1_successive_inputs[1] < 50:
+                            self.game_wrapper.game.p1_successive_inputs[1] += 1
+                        
+                    else:
+                        self.game_wrapper.game.p1_successive_inputs.clear()
+                        self.game_wrapper.game.p1_successive_inputs.append('down')
+                        self.game_wrapper.game.p1_successive_inputs.append(1)
+                # for _ in range(self.game_wrapper.game.p1_successive_inputs[1]//5 + 2):
+                for _ in range(5):
                     self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
 
+
             elif event["event"] == "player2Up" and self.game.RUNNING_AI is False:
-                for _ in range(10):
+                for _ in range(5):
                     self.game_wrapper.game.paddle2.move(self.game.game_wrapper.height, up=True)
 
             elif event["event"] == "player2Down" and self.game.RUNNING_AI is False:
-                for _ in range(10):
+                for _ in range(5):
                     self.game_wrapper.game.paddle2.move(self.game.game_wrapper.height, up=False)
 
             elif event["event"] == "reset":
                 self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x)
                 self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
                 self.game_wrapper.game.lastSentInfos = 0
+
+        elif event["type"] == "keyUp":
+            if event["event"] == 1:
+                self.game_wrapper.game.p1_successive_inputs.clear()
+            else:
+                self.game_wrapper.game.p2_successive_inputs.clear()
+
 
     async def generate_states(self):
         self.logger.info("in generate states")

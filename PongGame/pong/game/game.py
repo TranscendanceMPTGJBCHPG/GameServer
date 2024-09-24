@@ -39,7 +39,7 @@ class Game:
         self.DIFFICULTY = 3
         self.SAVING = True
         self.TRAINING = True
-        self.TRAININGPARTNER = True
+        self.TRAININGPARTNER = False
         self.LOADING = True
         self.testing = True
         self.lastDump = 0
@@ -67,6 +67,9 @@ class Game:
         self.ball.max_speed *= self.speed_multiplier
         self.paddle1.vel *= self.speed_multiplier
         self.paddle2.vel *= self.speed_multiplier
+
+        self.p1_successive_inputs = []
+        self.p2_successive_inputs = []
 
 
 
