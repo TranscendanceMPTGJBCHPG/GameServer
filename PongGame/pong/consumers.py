@@ -6,6 +6,10 @@ import logging
 import random
 from .ai_notify_ws_singleton import WebSocketSingleton
 import websockets
+import urllib.request
+import urllib.error
+import aiohttp
+from django.middleware.csrf import get_token
 
 AI = 2
 FRONT = 1
@@ -53,6 +57,41 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard("pong", self.channel_name)
         del self.clients[self.channel_name]
         self.game_wrapper.present_players -= 1
+        self.game_wrapper.game_over.set()
+        self.logger.info(f"Client disconnected: {self.channel_name}")
+        try:
+            if self.client == FRONT:
+                winner = "AI"
+            else:
+                winner = "Human"
+            url = 'http://nginx:7777/game/new/'
+            data = {
+                'type': 'gameover',
+                'sender': 'game',
+                'uid': self.game_id,
+                'winner': winner,
+            }
+            csrf_token = get_token(self.scope["session"])
+            headers = {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf_token
+            }
+
+            logging.info(f"Sending gameover event: {data}")
+
+            # Convertir le corps de la requête en JSON
+            # data = json.dumps(data).encode('utf-8')
+
+            # Créer l'objet Request
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json=data, headers=headers) as response:
+                    logging.info(f"response consumer {response}")
+                    # data = json.loads(response.read())
+                    # print(f"UID: {data}")
+
+        except Exception as e:
+            logging.error(f"Error sending gameover event: {str(e)}")
+
 
 
     async def receive(self, text_data):
