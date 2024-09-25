@@ -72,6 +72,13 @@ class Game:
         self.p2_successive_inputs = []
 
 
+    def init_display(self):
+        self.display = True
+        self.CLI_controls = True
+        pygame.init()
+        self.win = pygame.display.set_mode((self.width, self.height))
+        pygame.display.set_caption("Pong")
+
 
     def handleArguments(self, event):
         print(event)
@@ -354,7 +361,7 @@ class Game:
 
 
     async def resume_on_goal(self):
-        print("resume")
+        # print("resume")
         self.ball.reset(self.ball.x)
         self.goal1 = False
         self.goal2 = False

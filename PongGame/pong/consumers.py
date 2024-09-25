@@ -19,7 +19,7 @@ FRONT = 1
 #dict in dict, initial key = game_id
 #on getting greetings, create players with pID and type
 class PongConsumer(AsyncWebsocketConsumer):
-    print("Pong consumer")
+    # print("Pong consumer")
     logger = logging.getLogger(__name__)
     game_wrapper = None
     client = None
@@ -77,7 +77,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 'X-CSRFToken': csrf_token
             }
 
-            logging.info(f"Sending gameover event: {data}")
+            # logging.info(f"Sending gameover event: {data}")
 
             # Convertir le corps de la requête en JSON
             # data = json.dumps(data).encode('utf-8')
@@ -85,8 +85,8 @@ class PongConsumer(AsyncWebsocketConsumer):
             # Créer l'objet Request
             async with aiohttp.ClientSession() as session:
                 async with session.post(url, json=data, headers=headers) as response:
-                    logging.info(f"response consumer {response}")
-                    # data = json.loads(response.read())
+                    # logging.info(f"response consumer {response}")
+                    data = json.loads(response.read())
                     # print(f"UID: {data}")
 
         except Exception as e:
@@ -114,7 +114,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["type"] == "setup":
             self.game_wrapper.ai_is_initialized.set()
         if event["type"] == "move":
-            logging.info(f"AI move event: {event}\n\n")
+            # logging.info(f"AI move event: {event}\n\n")
             if event["direction"] == "up":
                 for _ in range(3):
                     self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
@@ -124,7 +124,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def send_ai_setup_instructions(self):
-        self.logger.info(f"Sending AI setup instructions")
+        # self.logger.info(f"Sending AI setup instructions")
         ai_data = {
             "type": "setup",
             "width": self.game_wrapper.game.width,
@@ -213,6 +213,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.game_wrapper.game.lastSentInfos = 0
 
         elif event["type"] == "keyUp":
+            if event["event"] == "c":
+                self.game_wrapper.game.init_display()
             if event["event"] == 1:
                 self.game_wrapper.game.p1_successive_inputs.clear()
             else:
@@ -220,14 +222,14 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def generate_states(self):
-        self.logger.info("in generate states")
+        # self.logger.info("in generate states")
         await self.game_wrapper.ai_is_initialized.wait()
-        self.logger.info("in generate states, ai is initialized")
+        # self.logger.info("in generate states, ai is initialized")
         await self.game_wrapper.start_event.wait()
-        self.logger.info("state gen set")
+        # self.logger.info("state gen set")
         x = 0
         async for state in self.game_wrapper.game.rungame():
-            print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}") 
+            # print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}")
             await self.game_wrapper.waiting_for_ai.wait()
 
             state_dict = json.loads(state)
