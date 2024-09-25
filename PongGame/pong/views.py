@@ -30,9 +30,6 @@ async def generate_uid(request):
                logger.info("PVE mode")
                difficulty = request.GET.get('difficulty')
                logger.info(f"difficulty: {difficulty}")
-               # public_uid = get_public_uid()
-               # if public_uid is not None:
-               #       return JsonResponse({'uid': public_uid})
                uid = str(uuid.uuid4())
                uid = difficulty[0] + uid[1:]
                while uid in uids:
