@@ -28,8 +28,9 @@ WORKDIR /app/PongGame
 
 
 RUN apt-get update && apt-get install -y \
-    python3-pip \
-    python3-dev \
+    mesa-utils \
+    libgl1-mesa-dri \
+    libgl1-mesa-glx \
     libx11-dev \
     libxext-dev \
     libxrender-dev \

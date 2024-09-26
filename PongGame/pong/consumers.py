@@ -27,16 +27,16 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     clients = {}
     async def connect(self):
-        self.logger.info(f"scope: {self.scope}")
+        # self.logger.info(f"scope: {self.scope}")
 
         self.game_id = self.scope['url_route']['kwargs']['uid']
-        self.logger.info(f"game id: {self.game_id}")
+        # self.logger.info(f"game id: {self.game_id}")
         self.group_name = f"pong_{self.game_id}"
-        self.logger.info(f"Group name: {self.group_name}")
+        # self.logger.info(f"Group name: {self.group_name}")
         await self.channel_layer.group_add(self.group_name, self.channel_name)
 
         await self.accept()
-        self.logger.info(f"New client connected: {self.channel_name}")
+        # self.logger.info(f"New client connected: {self.channel_name}")
         #check if game_id exists in clients
         self.clients[self.channel_name] = self
         self.game_wrapper = GameSingleton.get_game()
@@ -145,6 +145,12 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def handle_front_input(self, event):
         self.client = FRONT
+        if event["type"] == "resumeOnGoal":
+            # logging.info(f"resume on goal event: {event}")
+            await self.game_wrapper.game.resume_on_goal()
+            # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
+        elif self.game_wrapper.game.display is True:
+            return
         # self.logger.info(f"Handling front input: {event}")
         if event["type"] == "greetings":
             return
@@ -152,10 +158,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             # self.logger.info(f"start event: {event}")
             self.game_wrapper.start_event.set()
 
-        elif event["type"] == "resumeOnGoal":
-            # logging.info(f"resume on goal event: {event}")
-            await self.game_wrapper.game.resume_on_goal()
-            # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
 
         elif event["type"] == "keyDown":
             logging.info(f"key down event: {event}")
@@ -208,13 +210,16 @@ class PongConsumer(AsyncWebsocketConsumer):
                     self.game_wrapper.game.paddle2.move(self.game.game_wrapper.height, up=False)
 
             elif event["event"] == "reset":
-                self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x)
+                self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x, self.game_wrapper.game.display)
                 self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
                 self.game_wrapper.game.lastSentInfos = 0
 
         elif event["type"] == "keyUp":
             if event["event"] == "c":
-                self.game_wrapper.game.init_display()
+                if self.game_wrapper.game.display is False:
+                    self.game_wrapper.game.init_display()
+                else:
+                    self.game_wrapper.game.deactivate_CLI()
             if event["event"] == 1:
                 self.game_wrapper.game.p1_successive_inputs.clear()
             else:

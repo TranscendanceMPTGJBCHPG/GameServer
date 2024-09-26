@@ -38,7 +38,7 @@ class Ball:
         self.y += self.y_vel
 
 
-    def reset(self, x):
+    def reset(self, x, display):
         self.x = self.win_width // 2
         self.y = self.win_height // 2
         if x > 0:
@@ -50,6 +50,10 @@ class Ball:
             else:
                 goalAngle = random.uniform(150, 180)
         angle_rad = math.radians(goalAngle)
+        if display is True:
+            self.max_speed = self.win_width * self.win_height // 350000
+        else:
+            self.max_speed = self.win_width * self.win_height // 1000000
         speed = self.max_speed / 3
         self.x_vel = speed * math.cos(angle_rad)
         self.y_vel = speed * math.sin(angle_rad)
@@ -248,9 +252,9 @@ class Ball:
         res["lastTouch"] = self.lastTouch
         res["touchedWall"] = self.touchedWall
         res["rounded_angle"] = round((math.atan2(self.y_vel, self.x_vel)), 2)
-        logging.info(f"rad by ball: {math.atan2(self.y_vel, self.x_vel)}")
-        logging.info(f"rounded_angle by game: {res['rounded_angle']}")
-        # res["rounded_angle"] = round(math.atan2(self.y_vel, self.x_vel) * 2) / 2
+        # logging.info(f"rad by ball: {math.atan2(self.y_vel, self.x_vel)}")
+        # logging.info(f"rounded_angle by game: {res['rounded_angle']}")
+        res["rounded_angle"] = round(math.atan2(self.y_vel, self.x_vel) * 2) / 2
         res["next_collision"] = self.calculateNextCollisionPosition(game.paddle2)
         self.touchedWall = None
 

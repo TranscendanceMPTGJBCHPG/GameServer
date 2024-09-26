@@ -1,3 +1,4 @@
+import logging
 
 from .paddle import Paddle
 from .ball import Ball
@@ -57,6 +58,7 @@ class Game:
         self.currentTs = time.time()
         self.NewCalculusNeeded = True
         self.pauseCoolDown = self.currentTs
+        self.CLI_cooldown = 0
         self.lastSentInfos = 0
         self.gameState = {}
         self.are_args_set = False
@@ -73,11 +75,28 @@ class Game:
 
 
     def init_display(self):
+        current_ts = time.time()
+        if current_ts - self.CLI_cooldown < 0.5:
+            return
+        self.CLI_cooldown = current_ts
+
         self.display = True
         self.CLI_controls = True
         pygame.init()
         self.win = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Pong")
+        logging.info("Display initialized")
+
+    def deactivate_CLI(self):
+        current_ts = time.time()
+        if current_ts - self.CLI_cooldown < 0.5:
+            return
+        self.CLI_cooldown = current_ts
+
+        self.CLI_controls = False
+        self.display = False
+        pygame.quit()
+        logging.info("CLI deactivated")
 
 
     def handleArguments(self, event):
@@ -89,16 +108,15 @@ class Game:
     def handlePauseResetQuit(self):
         for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.quit()
-                    self.gameOver = True
-                    self.run = False
+                    self.deactivate_CLI()
+                    return
+                    # self.gameOver = True
+                    # self.run = False
         self.keys = pygame.key.get_pressed()
         keys = self.keys
         if keys[pygame.K_r]:
-            self.ball.reset(1)
+            self.ball.reset(1, self.display)
         if keys[pygame.K_ESCAPE]:
-            self.gameOver = True
-        if keys[pygame.K_SPACE]:
             if self.gameState["goal"] == "None":
                 self.currentTs = time.time()
                 if self.currentTs - 0.2 > self.pauseCoolDown:
@@ -107,15 +125,35 @@ class Game:
                         self.pause = False
                     else:
                         self.pause = True
+        # if keys[pygame.K_SPACE]:
+        #     if self.gameState["goal"] == "None":
+        #         self.currentTs = time.time()
+        #         if self.currentTs - 0.2 > self.pauseCoolDown:
+        #             self.pauseCoolDown = self.currentTs
+        #             if self.pause == True:
+        #                 self.pause = False
+        #             else:
+        #                 self.pause = True
     
 
     def handlePlayer1Inputs(self):
+        event = pygame.event.get()
         keys = self.keys
 
         if keys[pygame.K_w] and self.paddle1.canMove == True:
             self.paddle1.move(self.height, up=True)
-        if keys[pygame.K_s] and self.paddle1.canMove == True:
+        elif keys[pygame.K_s] and self.paddle1.canMove == True:
             self.paddle1.move(self.height, up=False)
+        # check c key keyup event
+
+        elif keys[pygame.K_c]:
+            logging.info("c key pressed")
+            # current_ts = time.time()
+            # logging.info(f"current_ts: {current_ts}, CLI_cooldown: {self.CLI_cooldown}")
+            # if current_ts - self.CLI_cooldown > 0.5:
+            #     self.CLI_cooldown = current_ts
+            #     self.deactivate_CLI()
+            self.deactivate_CLI()
 
     
     def handlePlayer2Inputs(self):
@@ -234,7 +272,7 @@ class Game:
                     self.redraw_window()
 
             # send JSON game state
-            if current_time - self.last_frame_time >= 1/60 or self.isgameover() == True:
+            if current_time - self.last_frame_time >= 1/60 or self.isgameover() == True and self.display == False:
                 self.serialize()
                 self.last_frame_time = current_time
                 # print(f"game state: {self.gameState}")
@@ -242,8 +280,6 @@ class Game:
 
 
     def quit(self):
-        if self.SAVING == True:
-            self.save_qtable()
         if self.display == True or self.CLI_controls:
             pygame.quit()
 
@@ -292,33 +328,6 @@ class Game:
 
         return res
 
-
-    def interactWithAI(self):
-        newTS = time.time()
-        if self.TRAINING == False:
-            if (newTS - self.lastSentInfos >= 1):
-                self.lastSentInfos = newTS
-                self.state = self.getGameState()
-        else:
-            self.state = self.getGameState()
-        res = self.ai.getAction(repr(self.state))
-
-        prevY = self.paddle2.y
-        # to nerf the AI:
-#         if random.choice([1, 2, 3, 4, 5]) != 1:
-#             res = 0
-        if res == 0:
-            pass
-        if res == 1 and self.paddle2.canMove == True:
-            self.paddle2.move(self.height, up=True)
-        if res == 2 and self.paddle2.canMove == True:
-            self.paddle2.move(self.height, up=False)
-        nextState = self.getGameState()
-        reward = self.ai.getReward(self.nextCollision, res, prevY, self.DIFFICULTY)
-        self.ai.upadateQTable(repr(self.state), res, reward, repr(nextState))
-        self.state[3] = (int((self.paddle2.y + self.paddle2.height / 2) / 50))
-
-
     def isgameover(self):
         if self.TRAINING == False:
             if self.paddle1.score >= self.scoreLimit or self.paddle2.score >= self.scoreLimit:
@@ -362,7 +371,7 @@ class Game:
 
     async def resume_on_goal(self):
         # print("resume")
-        self.ball.reset(self.ball.x)
+        self.ball.reset(self.ball.x, self.display)
         self.goal1 = False
         self.goal2 = False
         # if self.RUNNING_AI is True:
