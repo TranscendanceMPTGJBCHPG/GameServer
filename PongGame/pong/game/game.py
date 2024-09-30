@@ -38,10 +38,10 @@ class Game:
         # AI settings
         self.RUNNING_AI = True
         self.DIFFICULTY = 3
-        self.SAVING = True
+        self.SAVING = False
         self.TRAINING = True
-        self.TRAININGPARTNER = False
-        self.LOADING = True
+        self.TRAININGPARTNER = True
+        self.LOADING = False
         self.testing = True
         self.lastDump = 0
         # self.ai.training = self.TRAINING
@@ -82,6 +82,7 @@ class Game:
 
         self.display = True
         self.CLI_controls = True
+        self.ball.update_speed_on_CLI(self.display)
         pygame.init()
         self.win = pygame.display.set_mode((self.width, self.height))
         pygame.display.set_caption("Pong")
@@ -163,19 +164,6 @@ class Game:
             self.paddle2.move(self.height, up=True)
         if keys[pygame.K_DOWN] and self.paddle2.canMove == True:
             self.paddle2.move(self.height, up=False)
-
-
-    def save_qtable(self):
-        ai = self.ai
-
-        if self.testing == True:
-            ai.save('testing')
-        if self.DIFFICULTY == 3:
-            ai.save('hard')
-        elif self.DIFFICULTY == 2:
-            ai.save('medium')
-        elif self.DIFFICULTY == 1:
-            ai.save('easy')
 
 
     def handle_inputs(self):
@@ -289,6 +277,16 @@ class Game:
         self.paddle1.draw(self.win)
         self.paddle2.draw(self.win)
         self.ball.draw(self.win)
+
+        #draw a line in the middle of the screen
+        pygame.draw.line(self.win, self.white, (self.width // 2, 0), (self.width // 2, self.height), 5)
+        #draw the score
+        font = pygame.font.SysFont(None, 100)
+        text = font.render(str(self.paddle1.score), 1, self.white)
+        self.win.blit(text, (self.width // 4, 50))
+        text = font.render(str(self.paddle2.score), 1, self.white)
+        self.win.blit(text, (self.width // 4 * 3, 50))
+
         pygame.display.update()
 
 

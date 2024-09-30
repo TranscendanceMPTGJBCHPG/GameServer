@@ -54,9 +54,25 @@ class Ball:
             self.max_speed = self.win_width * self.win_height // 350000
         else:
             self.max_speed = self.win_width * self.win_height // 1000000
-        speed = self.max_speed / 3
+            # self.max_speed = self.win_width * self.win_height // 350000
+        speed = self.max_speed / 2
         self.x_vel = speed * math.cos(angle_rad)
         self.y_vel = speed * math.sin(angle_rad)
+
+    def update_speed_on_CLI(self, display):
+
+        current_speed = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
+        proportion = current_speed / self.max_speed
+
+        if display is True:
+            self.max_speed = self.win_width * self.win_height // 350000
+        else:
+            self.max_speed = self.win_width * self.win_height // 1000000
+            #update speed but keep the proportion compared to previous max_speed
+
+
+            self.x_vel = self.x_vel / math.sqrt(self.x_vel ** 2 + self.y_vel ** 2) * self.max_speed * proportion
+            self.y_vel = self.y_vel / math.sqrt(self.x_vel ** 2 + self.y_vel ** 2) * self.max_speed * proportion
 
 
     # matrix
