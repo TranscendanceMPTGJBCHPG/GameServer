@@ -18,10 +18,11 @@ class Ball:
         self.y = y
         self.win_width = win_width
         self.win_height = win_height
-        if display is True:
+        self.display = display
+        if self.display is True:
             self.max_speed = self.win_width * self.win_height // 350000
         else:
-            self.max_speed = self.win_width * self.win_height // 1000000
+            self.max_speed = self.win_width * self.win_height // 700000
         self.radius = radius
         self.x_vel = self.max_speed / 3.5
         self.y_vel = 0
@@ -53,7 +54,7 @@ class Ball:
         if display is True:
             self.max_speed = self.win_width * self.win_height // 350000
         else:
-            self.max_speed = self.win_width * self.win_height // 1000000
+            self.max_speed = self.win_width * self.win_height // 700000
             # self.max_speed = self.win_width * self.win_height // 350000
         speed = self.max_speed / 2
         self.x_vel = speed * math.cos(angle_rad)
@@ -62,7 +63,10 @@ class Ball:
     def update_speed_on_CLI(self, display):
 
         current_speed = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
+        logging.info(f"display: {display}")
+        logging.info(f"current_speed: {current_speed}")
         proportion = current_speed / self.max_speed
+        logging.info(f"proportion: {proportion}")
 
         if display is True:
             self.max_speed = self.win_width * self.win_height // 350000
@@ -73,6 +77,9 @@ class Ball:
 
             self.x_vel = self.x_vel / math.sqrt(self.x_vel ** 2 + self.y_vel ** 2) * self.max_speed * proportion
             self.y_vel = self.y_vel / math.sqrt(self.x_vel ** 2 + self.y_vel ** 2) * self.max_speed * proportion
+
+        new_speed = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
+        logging.info(f"new_speed: {new_speed}")
 
 
     # matrix

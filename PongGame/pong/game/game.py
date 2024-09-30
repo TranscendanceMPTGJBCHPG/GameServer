@@ -40,7 +40,7 @@ class Game:
         self.DIFFICULTY = 3
         self.SAVING = False
         self.TRAINING = True
-        self.TRAININGPARTNER = True
+        self.TRAININGPARTNER = False
         self.LOADING = False
         self.testing = True
         self.lastDump = 0
@@ -80,12 +80,12 @@ class Game:
             return
         self.CLI_cooldown = current_ts
 
+        pygame.init()
+        pygame.display.set_caption("Pong")
         self.display = True
         self.CLI_controls = True
         self.ball.update_speed_on_CLI(self.display)
-        pygame.init()
         self.win = pygame.display.set_mode((self.width, self.height))
-        pygame.display.set_caption("Pong")
         logging.info("Display initialized")
 
     def deactivate_CLI(self):
@@ -107,12 +107,13 @@ class Game:
 
 
     def handlePauseResetQuit(self):
-        for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.deactivate_CLI()
-                    return
-                    # self.gameOver = True
-                    # self.run = False
+        if self.display == True:
+            for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        self.deactivate_CLI()
+                        return
+                        # self.gameOver = True
+                        # self.run = False
         self.keys = pygame.key.get_pressed()
         keys = self.keys
         if keys[pygame.K_r]:
