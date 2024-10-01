@@ -214,7 +214,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
                 self.game_wrapper.game.lastSentInfos = 0
 
-        elif event["type"] == "keyUp":w
+        elif event["type"] == "keyUp":
             if event["event"] == "c":
                 if self.game_wrapper.game.display is False:
                     self.game_wrapper.game.init_display()
