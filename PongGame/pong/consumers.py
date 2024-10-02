@@ -160,7 +160,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
         elif event["type"] == "keyDown":
-            # logging.info(f"key down event: {event}")
+            logging.info(f"key down event: {event}")
 
             if event["event"] == "pause":
                 self.game_wrapper.game.pause = not self.game_wrapper.game.pause
@@ -214,7 +214,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
                 self.game_wrapper.game.lastSentInfos = 0
 
-        elif event["type"] == "keyUp":w
+        elif event["type"] == "keyUp":
             if event["event"] == "c":
                 if self.game_wrapper.game.display is False:
                     self.game_wrapper.game.init_display()
