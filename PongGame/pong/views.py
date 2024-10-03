@@ -24,68 +24,75 @@ def get_public_uid():
             return key
     return None
 
+
+def handle_PVE_mode(difficulty):
+    logging.info(f"handle_PVE_mode, difficulty: {difficulty}")
+    uid = str(uuid.uuid4())
+    uid = difficulty[0] + uid[1:]
+    while uid in uids:
+        uid = str(uuid.uuid4())
+        uid = difficulty[0] + uid[1:]
+    uids[uid] = {}
+    uids[uid]['mode'] = mode
+    uids[uid]['status'] = 'waiting_ai'
+    return uid
+
+
+def handle_PVP_mode(option):
+    #pvp LAN
+    if option == '1':
+        for key, value in uids.items():
+            if value['status'] == 'waiting_player':
+                value['status'] = 'ready'
+                return JsonResponse({'uid': key})
+        uid = str(uuid.uuid4())
+        while uid in uids:
+            uid = str(uuid.uuid4())
+        uids[uid] = {}
+        uids[uid]['mode'] = mode
+        uids[uid]['status'] = 'waiting_player'
+        response = JsonResponse({'uid': uid})
+        return response
+    else:
+        #si PVP meme machine, premier caractere de l'uid est 'k' et dernier est 'k'
+        uid = str(uuid.uuid4())
+        uid[0] = 'k'
+        uid[-1] = 'k'
+        while uid in uids:
+            uid = str(uuid.uuid4())
+            uid[0] = 'k'
+            uid[-1] = 'k'
+        uids[uid] = {}
+        uids[uid]['mode'] = mode
+        uids[uid]['status'] = 'ready'
+        return JsonResponse({'uid': uid})
+
+def handle_AI_mode():
+    uid = ai_get_uid()
+    if uid is not None:
+        # logger.info(f"AI mode, uid: {uids[uid]}")
+        uids[uid]['status'] = 'ready'
+        return JsonResponse({'uid': uid})
+    else:
+         return ('error')
+
+
 async def generate_uid(request):
+    logging.info(f"generate_uid, request: {request}")
+    uid = None
     if request.method == 'GET':
         try:
-
-
-            #1)recuperer JWT dans la requete 
-            # jwt.decode(request.headers['Authorization'], 
-            #https://stackoverflow.com/questions/59356703/api-passing-bearer-token-to-get-http-url
-            #load_dotenv()
-
-
-            # logger.info(f"generate_uid, {request}")
-            #get the mode in the request url
             mode = request.GET.get('mode')
-            # logger.info(f"mode: {mode}")
             if mode == 'PVE':
-                # logger.info("PVE mode")
-                difficulty = request.GET.get('difficulty')
-                # logger.info(f"difficulty: {difficulty}")
-                uid = str(uuid.uuid4())
-                uid = difficulty[0] + uid[1:]
-                while uid in uids:
-                    uid = str(uuid.uuid4())
-                    uid = difficulty[0] + uid[1:]
-                uids[uid] = {}
-                uids[uid]['mode'] = mode
-                # logger.info(f"after adding mode: {uids}")
-                #add a new value to uids[uid] to indicate if the game is public or private
-                uids[uid]['status'] = 'waiting_ai'
-                # logger.info(f"Generated uid: {uid}")
-                response = JsonResponse({'uid': uid})
-                #return response in JSON format
-                return response
+                uid = handle_PVE_mode(request.GET.get('option'))
             elif mode == 'PVP':
-                # logger.info("PVP mode")
-                # look for a game waiting for a player
-                for key, value in uids.items():
-                    if value['status'] == 'waiting_player':
-                        value['status'] = 'ready'
-                        # logger.info(f"uid found: {key}")
-                        return JsonResponse({'uid': key})
-                uid = str(uuid.uuid4())
-                while uid in uids:
-                    uid = str(uuid.uuid4())
-                uids[uid] = {}
-                uids[uid]['mode'] = mode
-                uids[uid]['status'] = 'waiting_player'
-                # logger.info(f"Generated uid: {uid}")
-                response = JsonResponse({'uid': uid})
-                #return response in JSON format
-                return response
+                uid = handle_PVP_mode(request.GET.get('option'))
             elif mode == 'AI':
-                # logger.info("AI mode")
-                uid = ai_get_uid()
-                if uid is not None:
-                    # logger.info(f"AI mode, uid: {uids[uid]}")
-                    uids[uid]['status'] = 'ready'
-                    return JsonResponse({'uid': uid})
-                else:
-                     return JsonResponse({'error': 'no game available'})
+                uid = handle_AI_mode()
         except Exception as e:
             logger.error(f"Error in generate_uid: {e}")
+        logger.info(f"before last return: generate_uid, uid: {uid}")
+        return JsonResponse({'uid': uid})
 
     elif request.method == 'POST':
         mode = request.GET.get('mode')
