@@ -1,4 +1,9 @@
 from django.shortcuts import render
+import os
+
+#recuper key from environment
+
+
 
 import uuid
 from django.http import JsonResponse
@@ -22,6 +27,14 @@ def get_public_uid():
 async def generate_uid(request):
     if request.method == 'GET':
         try:
+
+
+            #1)recuperer JWT dans la requete 
+            # jwt.decode(request.headers['Authorization'], 
+            #https://stackoverflow.com/questions/59356703/api-passing-bearer-token-to-get-http-url
+            #load_dotenv()
+
+
             # logger.info(f"generate_uid, {request}")
             #get the mode in the request url
             mode = request.GET.get('mode')
@@ -40,6 +53,24 @@ async def generate_uid(request):
                 # logger.info(f"after adding mode: {uids}")
                 #add a new value to uids[uid] to indicate if the game is public or private
                 uids[uid]['status'] = 'waiting_ai'
+                # logger.info(f"Generated uid: {uid}")
+                response = JsonResponse({'uid': uid})
+                #return response in JSON format
+                return response
+            elif mode == 'PVP':
+                # logger.info("PVP mode")
+                # look for a game waiting for a player
+                for key, value in uids.items():
+                    if value['status'] == 'waiting_player':
+                        value['status'] = 'ready'
+                        # logger.info(f"uid found: {key}")
+                        return JsonResponse({'uid': key})
+                uid = str(uuid.uuid4())
+                while uid in uids:
+                    uid = str(uuid.uuid4())
+                uids[uid] = {}
+                uids[uid]['mode'] = mode
+                uids[uid]['status'] = 'waiting_player'
                 # logger.info(f"Generated uid: {uid}")
                 response = JsonResponse({'uid': uid})
                 #return response in JSON format
