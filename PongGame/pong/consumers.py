@@ -24,6 +24,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     game_wrapper = None
     client = None
     is_main = False
+    has_resumed = False
 
     clients = {}
     async def connect(self):
@@ -146,8 +147,9 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def handle_front_input(self, event):
         self.client = FRONT
         if event["type"] == "resumeOnGoal":
-            # logging.info(f"resume on goal event: {event}")
+            logging.info(f"resume on goal event: {event}")
             await self.game_wrapper.game.resume_on_goal()
+            self.game_wrapper.has_resumed = True
             # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
         elif self.game_wrapper.game.display is True:
             return
@@ -242,6 +244,10 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.game_wrapper.game.quit()
                 self.game_wrapper.game_over.set()
                 break
+            if self.game_wrapper.has_resumed is True:
+                state_dict["type"] = "ResumeOnGoalDone"
+                logging.info(f"state dict: {state_dict}")
+                self.game_wrapper.has_resumed = False
             for client in self.clients.values():
                 await client.send(text_data=json.dumps(state_dict))
                 self.game_wrapper.waiting_for_ai.clear()

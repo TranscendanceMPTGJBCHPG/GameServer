@@ -33,7 +33,7 @@ def handle_PVE_mode(difficulty):
         uid = str(uuid.uuid4())
         uid = difficulty[0] + uid[1:]
     uids[uid] = {}
-    uids[uid]['mode'] = mode
+    uids[uid]['mode'] = difficulty
     uids[uid]['status'] = 'waiting_ai'
     return uid
 
@@ -49,7 +49,7 @@ def handle_PVP_mode(option):
         while uid in uids:
             uid = str(uuid.uuid4())
         uids[uid] = {}
-        uids[uid]['mode'] = mode
+        uids[uid]['mode'] = option
         uids[uid]['status'] = 'waiting_player'
         response = JsonResponse({'uid': uid})
         return response
@@ -63,18 +63,19 @@ def handle_PVP_mode(option):
             uid[0] = 'k'
             uid[-1] = 'k'
         uids[uid] = {}
-        uids[uid]['mode'] = mode
+        uids[uid]['mode'] = option
         uids[uid]['status'] = 'ready'
         return JsonResponse({'uid': uid})
 
 def handle_AI_mode():
     uid = ai_get_uid()
     if uid is not None:
-        # logger.info(f"AI mode, uid: {uids[uid]}")
+        logger.info(f"AI mode, uid: {uids[uid]}")
         uids[uid]['status'] = 'ready'
-        return JsonResponse({'uid': uid})
+        return uid
     else:
-         return ('error')
+        logger.info(f"AI mode, no uid found")
+        return ('error')
 
 
 async def generate_uid(request):

@@ -14,6 +14,8 @@ class GameSingleton:
     resume_on_goal = asyncio.Event()
     waiting_for_ai = asyncio.Event()
     ai_partner = True
+    has_resumed = False
+
 
     present_players = 0
     game = Game()
