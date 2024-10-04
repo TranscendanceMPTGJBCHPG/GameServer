@@ -25,6 +25,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     client = None
     is_main = False
     has_resumed = False
+    mode = None
 
     clients = {}
     async def connect(self):
@@ -41,12 +42,24 @@ class PongConsumer(AsyncWebsocketConsumer):
         #check if game_id exists in clients
         self.clients[self.channel_name] = self
         self.game_wrapper = GameSingleton.get_game()
-        self.game_wrapper.present_players += 1
-        if self.game_wrapper.present_players == 2:
-            # self.logger.info("Main client connected")
-            # self.logger.info(f"number of connected clients: {self.game_wrapper.present_players}")
+
+        if self.game_id[0] == 'k' and self.game_id[-1] == 'k':
+            mode = 'PVP_keyboard'
+            self.client = FRONT
+            self.game_wrapper.present_players += 2
             self.is_main = True
             self.game_wrapper.all_players_connected.set()
+            self.game_wrapper.ai_is_initialized.set()
+            self.game_wrapper.waiting_for_ai.set()
+            self.game_wrapper.game.RUNNING_AI = False
+
+        else:
+            self.game_wrapper.present_players += 1
+            if self.game_wrapper.present_players == 2:
+            # self.logger.info("Main client connected")
+            # self.logger.info(f"number of connected clients: {self.game_wrapper.present_players}")
+                self.is_main = True
+                self.game_wrapper.all_players_connected.set()
         # self.logger.info(f"PongConsumer connected and added to group 'pong': {self.channel_name}")
 
         if self.is_main is True:
@@ -203,16 +216,16 @@ class PongConsumer(AsyncWebsocketConsumer):
                     self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
 
 
-            elif event["event"] == "player2Up" and self.game.RUNNING_AI is False:
+            elif event["event"] == "player2Up" and self.game_wrapper.game.RUNNING_AI is False:
                 for _ in range(5):
-                    self.game_wrapper.game.paddle2.move(self.game.game_wrapper.height, up=True)
+                    self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
 
-            elif event["event"] == "player2Down" and self.game.RUNNING_AI is False:
+            elif event["event"] == "player2Down" and self.game_wrapper.game.RUNNING_AI is False:
                 for _ in range(5):
-                    self.game_wrapper.game.paddle2.move(self.game.game_wrapper.height, up=False)
+                    self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
 
             elif event["event"] == "reset":
-                self.game_wrapper.game.ball.reset(self.game_wrapper.game.baswsll.x, self.game_wrapper.game.display)
+                self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x, self.game_wrapper.game.display)
                 self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
                 self.game_wrapper.game.lastSentInfos = 0
 
@@ -229,15 +242,17 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def generate_states(self):
-        # self.logger.info("in generate states")
+        self.logger.info("in generate states")
         await self.game_wrapper.ai_is_initialized.wait()
-        # self.logger.info("in generate states, ai is initialized")
+        self.logger.info("in generate states, ai is initialized")
         await self.game_wrapper.start_event.wait()
-        # self.logger.info("state gen set")
+        self.logger.info("state gen set")
         x = 0
         async for state in self.game_wrapper.game.rungame():
+            logging.info("in state gen")
             # print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}")
-            await self.game_wrapper.waiting_for_ai.wait()
+            if self.game_wrapper.game.RUNNING_AI is True:
+                await self.game_wrapper.waiting_for_ai.wait()
 
             state_dict = json.loads(state)
             if state_dict["type"] == "gameover":

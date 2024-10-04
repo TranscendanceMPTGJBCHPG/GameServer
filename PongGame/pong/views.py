@@ -51,21 +51,22 @@ def handle_PVP_mode(option):
         uids[uid] = {}
         uids[uid]['mode'] = option
         uids[uid]['status'] = 'waiting_player'
-        response = JsonResponse({'uid': uid})
+        response = uid
         return response
     else:
-        #si PVP meme machine, premier caractere de l'uid est 'k' et dernier est 'k'
         uid = str(uuid.uuid4())
-        uid[0] = 'k'
-        uid[-1] = 'k'
+        #put k at the beginning and end of the uid to identify it as a PVP mode
+        uid = 'k' + uid[1:]
+        uid = uid[:-1] + 'k'
         while uid in uids:
             uid = str(uuid.uuid4())
-            uid[0] = 'k'
-            uid[-1] = 'k'
+            uid = 'k' + uid[1:]
+            uid = uid[:-1] + 'k'
         uids[uid] = {}
         uids[uid]['mode'] = option
         uids[uid]['status'] = 'ready'
-        return JsonResponse({'uid': uid})
+        logger.info(f"PVP mode, uid: {uids[uid]}, returning")
+        return uid
 
 def handle_AI_mode():
     uid = ai_get_uid()
