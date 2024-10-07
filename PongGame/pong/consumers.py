@@ -44,11 +44,22 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper = GameSingleton.get_game()
 
         if self.game_id[0] == 'k' and self.game_id[-1] == 'k':
-            mode = 'PVP_keyboard'
+            self.mode = 'PVP_keyboard'
             self.client = FRONT
             self.game_wrapper.present_players += 2
             self.is_main = True
             self.game_wrapper.all_players_connected.set()
+            self.game_wrapper.ai_is_initialized.set()
+            self.game_wrapper.waiting_for_ai.set()
+            self.game_wrapper.game.RUNNING_AI = False
+
+        elif self.game_id[0] == 'P' and self.game_id[1] == 'V' and self.game_id[2] == 'P':
+            self.mode = 'PVP_LAN'
+            self.client = FRONT
+            self.game_wrapper.present_players += 1
+            if self.game_wrapper.present_players == 2:
+                self.is_main = True
+                self.game_wrapper.all_players_connected.set()
             self.game_wrapper.ai_is_initialized.set()
             self.game_wrapper.waiting_for_ai.set()
             self.game_wrapper.game.RUNNING_AI = False
@@ -180,54 +191,55 @@ class PongConsumer(AsyncWebsocketConsumer):
             if event["event"] == "pause":
                 self.game_wrapper.game.pause = not self.game_wrapper.game.pause
 
-            elif event["event"] == "player1Up":
-                if not self.game_wrapper.game.p1_successive_inputs:
-                    self.game_wrapper.game.p1_successive_inputs.append('up')
-                    self.game_wrapper.game.p1_successive_inputs.append(1)
-                else:
-                    if self.game_wrapper.game.p1_successive_inputs[0] == 'up':
-                        if self.game_wrapper.game.p1_successive_inputs[1] < 50:
-                            self.game_wrapper.game.p1_successive_inputs[1] += 1
-                        
-                    else:
-                        self.game_wrapper.game.p1_successive_inputs.clear()
+            if self.is_main is False:
+                if event["event"] == "player1Up":
+                    if not self.game_wrapper.game.p1_successive_inputs:
                         self.game_wrapper.game.p1_successive_inputs.append('up')
                         self.game_wrapper.game.p1_successive_inputs.append(1)
-
-                # for _ in range(self.game_wrapper.game.p1_successive_inputs[1]//5 + 2):
-                for _ in range(5):
-                    self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
-
-            elif event["event"] == "player1Down":
-                if not self.game_wrapper.game.p1_successive_inputs:
-                    self.game_wrapper.game.p1_successive_inputs.append('down')
-                    self.game_wrapper.game.p1_successive_inputs.append(1)
-                else:
-                    if self.game_wrapper.game.p1_successive_inputs[0] == 'down':
-                        if self.game_wrapper.game.p1_successive_inputs[1] < 50:
-                            self.game_wrapper.game.p1_successive_inputs[1] += 1
-                        
                     else:
-                        self.game_wrapper.game.p1_successive_inputs.clear()
+                        if self.game_wrapper.game.p1_successive_inputs[0] == 'up':
+                            if self.game_wrapper.game.p1_successive_inputs[1] < 50:
+                                self.game_wrapper.game.p1_successive_inputs[1] += 1
+
+                        else:
+                            self.game_wrapper.game.p1_successive_inputs.clear()
+                            self.game_wrapper.game.p1_successive_inputs.append('up')
+                            self.game_wrapper.game.p1_successive_inputs.append(1)
+
+                    # for _ in range(self.game_wrapper.game.p1_successive_inputs[1]//5 + 2):
+                    for _ in range(5):
+                        self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
+
+                if event["event"] == "player1Down":
+                    if not self.game_wrapper.game.p1_successive_inputs:
                         self.game_wrapper.game.p1_successive_inputs.append('down')
                         self.game_wrapper.game.p1_successive_inputs.append(1)
-                # for _ in range(self.game_wrapper.game.p1_successive_inputs[1]//5 + 2):
-                for _ in range(5):
-                    self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
+                    else:
+                        if self.game_wrapper.game.p1_successive_inputs[0] == 'down':
+                            if self.game_wrapper.game.p1_successive_inputs[1] < 50:
+                                self.game_wrapper.game.p1_successive_inputs[1] += 1
 
+                        else:
+                            self.game_wrapper.game.p1_successive_inputs.clear()
+                            self.game_wrapper.game.p1_successive_inputs.append('down')
+                            self.game_wrapper.game.p1_successive_inputs.append(1)
+                    # for _ in range(self.game_wrapper.game.p1_successive_inputs[1]//5 + 2):
+                    for _ in range(5):
+                        self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
 
-            elif event["event"] == "player2Up" and self.game_wrapper.game.RUNNING_AI is False:
-                for _ in range(5):
-                    self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
+            if self.is_main is True:
+                if event["event"] == "player2Up" and self.game_wrapper.game.RUNNING_AI is False:
+                    for _ in range(5):
+                        self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
 
-            elif event["event"] == "player2Down" and self.game_wrapper.game.RUNNING_AI is False:
-                for _ in range(5):
-                    self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
+                if event["event"] == "player2Down" and self.game_wrapper.game.RUNNING_AI is False:
+                    for _ in range(5):
+                        self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
 
-            elif event["event"] == "reset":
-                self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x, self.game_wrapper.game.display)
-                self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
-                self.game_wrapper.game.lastSentInfos = 0
+                if event["event"] == "reset":
+                    self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x, self.game_wrapper.game.display)
+                    self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
+                    self.game_wrapper.game.lastSentInfos = 0
 
         elif event["type"] == "keyUp":
             if event["event"] == "c":
@@ -249,7 +261,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.logger.info("state gen set")
         x = 0
         async for state in self.game_wrapper.game.rungame():
-            logging.info("in state gen")
+            # logging.info("in state gen")
             # print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}")
             if self.game_wrapper.game.RUNNING_AI is True:
                 await self.game_wrapper.waiting_for_ai.wait()

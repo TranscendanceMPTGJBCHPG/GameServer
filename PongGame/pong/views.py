@@ -44,14 +44,16 @@ def handle_PVP_mode(option):
         for key, value in uids.items():
             if value['status'] == 'waiting_player':
                 value['status'] = 'ready'
-                return JsonResponse({'uid': key})
-        uid = str(uuid.uuid4())
+                logging.info(f"PVP mode, joining game, uid: {key}")
+                return key
+        uid = "PVP" + str(uuid.uuid4())
         while uid in uids:
-            uid = str(uuid.uuid4())
+            uid ="PVP" + str(uuid.uuid4())
         uids[uid] = {}
         uids[uid]['mode'] = option
         uids[uid]['status'] = 'waiting_player'
         response = uid
+        logging.info(f"PVP mode, creating game :uid: {uids[uid]}, returning")
         return response
     else:
         uid = str(uuid.uuid4())
