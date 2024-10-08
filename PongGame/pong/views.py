@@ -83,6 +83,7 @@ def handle_AI_mode():
 
 async def generate_uid(request):
     logging.info(f"generate_uid, request: {request}")
+    logging.info(f"number of uids: {len(uids)}")
     uid = None
     if request.method == 'GET':
         try:
@@ -99,15 +100,20 @@ async def generate_uid(request):
         return JsonResponse({'uid': uid})
 
     elif request.method == 'POST':
-        mode = request.GET.get('mode')
+        logging.info(f"generate_uid, POST request: {request}\n\n")
+        logging.info(f"Content-Type: {request.headers.get('Content-Type')}")
+        logging.info(f"Raw body: {request.body.decode('utf-8')}")
+
+        body = json.loads(request.body.decode('utf-8'))
+        mode = body['type']
         if mode == 'gameover':
-            return(handle_gameover(request))
+            return(handle_gameover(body))
                
 
 def handle_gameover(request):
     try:
         logger.info(f"in handle gameover, request: {request}")
-        uid = request.GET.get('uid')
+        uid = request['uid']
         logger.info(f"handle_gameover, uid: {uid}")
         if uid in uids:
             logger.info(f"handle_gameover, uid found: {uid}")
