@@ -9,6 +9,7 @@ import uuid
 from django.http import JsonResponse
 import logging
 import json
+import random
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import asyncio
@@ -29,12 +30,16 @@ def handle_PVE_mode(difficulty):
     logging.info(f"handle_PVE_mode, difficulty: {difficulty}")
     uid = str(uuid.uuid4())
     uid = difficulty[0] + uid[1:]
+    uid += '1'
+    # uid += random.choice(['1', '2'])
     while uid in uids:
         uid = str(uuid.uuid4())
         uid = difficulty[0] + uid[1:]
+        uid += random.choice(['1', '2'])
     uids[uid] = {}
     uids[uid]['mode'] = difficulty
     uids[uid]['status'] = 'waiting_ai'
+
     return uid
 
 

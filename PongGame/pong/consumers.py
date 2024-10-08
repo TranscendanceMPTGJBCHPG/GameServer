@@ -23,10 +23,12 @@ class PongConsumer(AsyncWebsocketConsumer):
     # print("Pong consumer")
     logger = logging.getLogger(__name__)
     game_wrapper = None
-    client = None
+    side = None
     is_main = False
     has_resumed = False
     mode = None
+    adversary = None
+
 
     clients = {}
 
@@ -100,18 +102,46 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     def PVE_init(self):
         self.mode = "PVE"
-        self.game_wrapper.present_players += 1
-        if self.game_wrapper.present_players == 2:
-            # self.logger.info("Main client connected")
-            # self.logger.info(f"number of connected clients: {self.game_wrapper.present_players}")
+        if self.game_id[-1] == '1':
+            self.side = "p1"
             self.game_wrapper.player_2.type = "AI"
-            self.game_wrapper.player_2.is_connected = True
-            self.game_wrapper.player_2.is_ready = True
+            self.game_wrapper.player_2.type = "Human"
+        else:
+            self.side = "p2"
+            self.game_wrapper.player_2.type = "Human"
+            self.game_wrapper.player_2.type = "AI"
+        self.game_wrapper.present_players += 1
+
+
+        if self.game_wrapper.present_players == 2:
+
+            #AI connection
+            if self.game_id[-1] == '1':
+                self.game_wrapper.player_1.is_connected = True
+                self.game_wrapper.player_1.is_ready = True
+                logging.info(f"player 1 connected: {self.game_wrapper.player_1.type}")
+            else:
+                self.game_wrapper.player_2.is_connected = True
+                self.game_wrapper.player_2.is_ready = True
+                logging.info(f"player 2 connected: {self.game_wrapper.player_2.type}")
+
             self.is_main = True
             self.game_wrapper.all_players_connected.set()
+
         else:
-            self.game_wrapper.player_1.type = "Human"
-            self.game_wrapper.player_1.is_connected = True
+            #human connection
+            if self.game_id[-1] == '1':
+                self.side = 'p2'
+                self.game_wrapper.player_2.type = "Human"
+                self.game_wrapper.player_2.is_connected = True
+                self.game_wrapper.player_1.type = "AI"
+                logging.info(f"player 2 connected: {self.game_wrapper.player_2}")
+            else:
+                self.side = 'p1'
+                self.game_wrapper.player_1.type = "Human"
+                self.game_wrapper.player_1.is_connected = True
+                self.game_wrapper.player_2.type = "AI"
+                logging.info(f"player 1 connected: {self.game_wrapper.player_1}")
         self.game_wrapper.game.RUNNING_AI = True
 
     # self.logger.info(f"PongConsumer connected and added to group 'pong': {self.channel_name}")
@@ -229,6 +259,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         # self.logger.info(f"Sending AI setup instructions")
         ai_data = {
             "type": "setup",
+            "side": "left",
             "width": self.game_wrapper.game.width,
             "height": self.game_wrapper.game.height,
             "paddle_width": self.game_wrapper.game.paddle2.width,
