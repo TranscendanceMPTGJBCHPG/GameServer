@@ -51,6 +51,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         #check if game_id exists in clients
 
         self.clients[self.channel_name] = self
+        logging.info(f"clients: {self.clients}")
         self.game_wrapper = GameSingleton.get_game()
 
         if self.game_id[0] == 'k' and self.game_id[-1] == 'k':
@@ -125,10 +126,22 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper.game_over.set()
         self.logger.info(f"Client disconnected: {self.channel_name}")
         try:
-            if self.client == FRONT:
-                winner = "AI"
+            if self.mode == "PVE":
+                if self.client == FRONT:
+                    winner = "Player2"
+                else:
+                    winner = "Player1"
+            elif self.mode == "PVP_keyboard":
+                if self.game_wrapper.game.paddle1.score > self.game_wrapper.game.paddle2.score:
+                    winner = "Player1"
+                else:
+                    winner = "Player2"
             else:
-                winner = "Human"
+                if self.is_main is True:
+                    winner = "Player1"
+                else:
+                    winner = "Player2"
+
             url = 'http://nginx:7777/game/new/'
             data = {
                 'type': 'gameover',
@@ -162,12 +175,24 @@ class PongConsumer(AsyncWebsocketConsumer):
                         logging.error("CSRF validation failed")
                         return None
 
-                    content = await response.text()
-                    return json.loads(content)
-                    # print(f"UID: {data}")
+            #send data to the other client
+            remaining_client = list(self.clients.values())[0]
+            await remaining_client.send(json.dumps(data))
+
+
+
+
+            # for client, value in self.clients.values():
+            #     if value != self:
+            #         await client.send(json.dumps(data))
+            #
+            #         content = await response.text()
+            #         return json.loads(content)
+            #         # print(f"UID: {data}")
+
 
         except Exception as e:
-            logging.error(f"Error sending gameover event: {str(e)}")
+            logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
 
 
 
