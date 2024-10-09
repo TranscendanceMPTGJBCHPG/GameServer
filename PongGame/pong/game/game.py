@@ -40,7 +40,7 @@ class Game:
         self.DIFFICULTY = 3
         self.SAVING = False
         self.TRAINING = True
-        self.TRAININGPARTNER = False
+        self.TRAININGPARTNER = True
         self.LOADING = False
         self.testing = True
         self.lastDump = 0
@@ -172,7 +172,7 @@ class Game:
             if self.display == True:
                 self.handlePlayer1Inputs()
         else:
-            self.paddle1.y = self.nextCollision[1] - self.paddle1.height // 2
+            self.paddle2.y = self.nextCollision[1] - self.paddle1.height // 2
         if not self.RUNNING_AI:
             if self.CLI_controls == True:
                 self.handlePlayer2Inputs()
@@ -240,7 +240,8 @@ class Game:
                     self.nextCollision = ball.calculateNextCollisionPosition(paddle2)
                 if self.TRAININGPARTNER == True:
                     half_height = paddle2.height // 2
-                    paddle1.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
+                    # paddle1.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
+                    paddle2.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
                 self.NewCalculusNeeded = False
 
             pygame.time.delay(1)
@@ -364,7 +365,9 @@ class Game:
         res["pause"] = self.pause
         res['ai_data'] = self.getGameState()
         res['ai_data'].append(self.nextCollision)
+        # res['ai_data'].append(self.paddle1.y)
         res['ai_data'].append(self.paddle2.y)
+
         return res
 
 
