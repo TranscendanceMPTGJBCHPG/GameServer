@@ -306,7 +306,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["type"] == "resumeOnGoal":
             logging.info(f"resume on goal event: {event}")
             await self.game_wrapper.game.resume_on_goal()
-            self.game_wrapper.has_resumed = True
+            self.game_wrapper.has_resumed.set()
             # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
         elif self.game_wrapper.game.display is True:
             return
@@ -362,8 +362,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.logger.info("state gen set")
         x = 0
         async for state in self.game_wrapper.game.rungame():
-            logging.info("in state gen")
-            print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}")
+            # logging.info("in state gen")
+            # print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}")
             # if self.game_wrapper.game.RUNNING_AI is True:
             #     await self.game_wrapper.waiting_for_ai.wait()
 
@@ -372,10 +372,10 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.game_wrapper.game.quit()
                 self.game_wrapper.game_over.set()
                 break
-            if self.game_wrapper.has_resumed is True:
+            if self.game_wrapper.has_resumed.is_set() is True:
                 state_dict["type"] = "ResumeOnGoalDone"
                 logging.info(f"state dict: {state_dict}")
-                self.game_wrapper.has_resumed = False
+                self.game_wrapper.has_resumed.clear()
             try:
                 for client in self.clients.values():
                     await client.send(text_data=json.dumps(state_dict))
