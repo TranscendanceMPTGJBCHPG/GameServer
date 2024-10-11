@@ -30,7 +30,8 @@ def handle_PVE_mode(difficulty):
     logging.info(f"handle_PVE_mode, difficulty: {difficulty}")
     uid = str(uuid.uuid4())
     uid = difficulty[0] + uid[1:]
-    uid += '1'
+    uid += '2'
+    # uid += '1'
     # uid += random.choice(['1', '2'])
     while uid in uids:
         uid = str(uuid.uuid4())
