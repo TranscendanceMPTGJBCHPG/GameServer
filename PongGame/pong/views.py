@@ -13,6 +13,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import asyncio
 import websockets
+from .tournament import tournament_maker
 
 #keep track of the existing uid in a dictionnary, with uid as key and a string as value
 uids = {}
@@ -131,3 +132,6 @@ def ai_get_uid():
             # logger.info(f"AI_get_uid, key: {key}")
             return key
     return None
+
+def tournament(request):
+    tournament_maker(request)
