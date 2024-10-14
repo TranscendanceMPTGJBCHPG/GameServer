@@ -146,7 +146,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://ai_client"
     "http://localhost:81",
     "http://127.0.0.1:81",
-    "http://server"
+    "http://server",
+    "http://10.19.239.226:7777",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True  # Pour tester temporairement

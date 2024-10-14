@@ -19,12 +19,12 @@ from django.urls import path
 from pong import views
 from django.http import JsonResponse
 
-def options(request):
-    response = JsonResponse({"detail": "CORS allowed"})
-    response["Access-Control-Allow-Origin"] = "*"
-    response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
-    response["Access-Control-Allow-Headers"] = "Origin, Content-Type, Accept"
-    return response
+# def options(request):
+#     response = JsonResponse({"detail": "CORS allowed"})
+#     response["Access-Control-Allow-Origin"] = "*"
+#     response["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+#     response["Access-Control-Allow-Headers"] = "Origin, Content-Type, Accept"
+#     return response
 
 urlpatterns = [
     path('admin/', admin.site.urls),
