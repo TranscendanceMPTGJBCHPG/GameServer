@@ -3,17 +3,9 @@ import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .game.game_singleton import GameSingleton
 import logging
-import random
-from .ai_notify_ws_singleton import WebSocketSingleton
-import websockets
-import urllib.request
-import urllib.error
 import aiohttp
-from django.middleware.csrf import get_token
 from .utils import get_new_csrf_string_async
 
-AI = 2
-FRONT = 1
 
 #add greetings from both clients
 #add clients to clients
@@ -292,11 +284,11 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
 
     def handle_player2_input(self, event):
-        if event["event"] == "player2Up" and self.game_wrapper.game.RUNNING_AI is False and self.side == "p2":
+        if event["event"] == "player2Up" and self.side == "p2":
             for _ in range(5):
                 self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
 
-        if event["event"] == "player2Down" and self.game_wrapper.game.RUNNING_AI is False and self.side == "p2":
+        if event["event"] == "player2Down" and self.side == "p2":
             for _ in range(5):
                 self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
 
@@ -330,11 +322,11 @@ class PongConsumer(AsyncWebsocketConsumer):
                 if self.mode == "PVE" or "PVP_keyboard":
                     self.game_wrapper.game.pause = not self.game_wrapper.game.pause
 
-            if self.is_main is False:
+            if self.side == "p1":
                 self.handle_player1_input(event)
 
 
-            if self.is_main is True:
+            if self.side == "p2":
                 self.handle_player2_input(event)
 
             # if event["event"] == "reset":
