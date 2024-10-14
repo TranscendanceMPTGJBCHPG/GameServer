@@ -134,4 +134,5 @@ def ai_get_uid():
     return None
 
 def tournament(request):
+    logging.info(f"tournament, request: {request}")
     tournament_maker(request)
