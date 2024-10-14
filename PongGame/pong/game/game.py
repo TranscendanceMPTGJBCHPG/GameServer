@@ -340,6 +340,7 @@ class Game:
 
     def serialize(self):
         self.gameState["type"] = "None"
+        self.gameState["playing"] = self.goal1 is False and self.goal2 is False
         if self.goal1 == True:
             self.gameState["goal"] = "1"
             # self.goal1 = False
