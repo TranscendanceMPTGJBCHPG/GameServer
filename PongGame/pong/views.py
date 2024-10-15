@@ -30,6 +30,7 @@ def handle_PVE_mode(difficulty):
     logging.info(f"handle_PVE_mode, difficulty: {difficulty}")
     uid = str(uuid.uuid4())
     uid = difficulty[0] + uid[1:]
+
     while uid in uids:
         uid = str(uuid.uuid4())
         uid = difficulty[0] + uid[1:]
@@ -133,6 +134,10 @@ def ai_get_uid():
             return key
     return None
 
+
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
 def tournament(request):
-    logging.info(f"tournament, request: {request}")
+    logging.info(f"tournament, request: {request}\n\n")
     tournament_maker(request)
+    return {"ok": "ok"}

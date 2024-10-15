@@ -156,6 +156,9 @@ CSRF_TRUSTED_ORIGINS = [
     'http://localhost:7777',
 ]
 
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
+
 LOGGING = {
        'version': 1,
        'disable_existing_loggers': False,
