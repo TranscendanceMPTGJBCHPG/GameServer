@@ -139,13 +139,25 @@ CHANNEL_LAYERS_OPTIONS = {
 }
 
 CORS_ALLOWED_ORIGINS = [
+    "http://localhost:7777",
+    "http://frontend_client",
     "http://localhost:5173",
     "http://nginx:81",
     "http://ai_client"
     "http://localhost:81",
     "http://127.0.0.1:81",
-    "http://server"
+    "http://server",
+    "http://10.19.239.226:7777",
 ]
+
+CORS_ALLOW_ALL_ORIGINS = True  # Pour tester temporairement
+
+CSRF_TRUSTED_ORIGINS = [
+    'http://localhost:7777',
+]
+
+CSRF_COOKIE_SECURE = False
+CSRF_COOKIE_HTTPONLY = False
 
 LOGGING = {
        'version': 1,
