@@ -40,11 +40,13 @@ class Game:
         self.DIFFICULTY = 3
         self.SAVING = False
         self.TRAINING = True
-        self.TRAININGPARTNER = False
         self.LOADING = False
         self.testing = True
         self.lastDump = 0
         # self.ai.training = self.TRAINING
+        self.TRAININGPARTNER = True
+        self.partner_side = "right"
+
         self.gameOver = False
 
         # self.init_ai()
@@ -238,10 +240,12 @@ class Game:
                     self.nextCollision = ball.calculateNextCollisionPosition(paddle1)
                 else:
                     self.nextCollision = ball.calculateNextCollisionPosition(paddle2)
-                if self.TRAININGPARTNER == True:
+                if self.TRAININGPARTNER is True:
                     half_height = paddle2.height // 2
-                    # paddle1.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
-                    paddle2.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
+                    if self.partner_side == "right":
+                        paddle2.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
+                    else:
+                        paddle1.y = self.nextCollision[1] + random.uniform(-half_height, half_height) - half_height
                 self.NewCalculusNeeded = False
 
             pygame.time.delay(1)
