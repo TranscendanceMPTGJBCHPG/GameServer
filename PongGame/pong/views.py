@@ -27,11 +27,11 @@ def get_public_uid():
 
 
 def handle_PVE_mode(difficulty):
-    logging.info(f"handle_PVE_mode, difficulty: {difficulty}")
+    # logging.info(f"handle_PVE_mode, difficulty: {difficulty}")
     uid = str(uuid.uuid4())
     uid = difficulty[0] + uid[1:]
-    # uid += '2'
-    uid += '1'
+    uid += '2'
+    # uid += '1'
     # uid += random.choice(['1', '2'])
     while uid in uids:
         uid = str(uuid.uuid4())
@@ -59,7 +59,7 @@ def handle_PVP_mode(option):
         uids[uid]['mode'] = option
         uids[uid]['status'] = 'waiting_player'
         response = uid
-        logging.info(f"PVP mode, creating game :uid: {uids[uid]}, returning")
+        # logging.info(f"PVP mode, creating game :uid: {uids[uid]}, returning")
         return response
     else:
         uid = str(uuid.uuid4())
@@ -73,17 +73,17 @@ def handle_PVP_mode(option):
         uids[uid] = {}
         uids[uid]['mode'] = option
         uids[uid]['status'] = 'ready'
-        logger.info(f"PVP mode, uid: {uids[uid]}, returning")
+        # logger.info(f"PVP mode, uid: {uids[uid]}, returning")
         return uid
 
 def handle_AI_mode():
     uid = ai_get_uid()
     if uid is not None:
-        logger.info(f"AI mode, uid: {uids[uid]}")
+        # logger.info(f"AI mode, uid: {uids[uid]}")
         uids[uid]['status'] = 'ready'
         return uid
     else:
-        logger.info(f"AI mode, no uid found")
+        # logger.info(f"AI mode, no uid found")
         return ('error')
 
 

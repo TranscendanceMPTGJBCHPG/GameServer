@@ -44,7 +44,7 @@ class Game:
         self.testing = True
         self.lastDump = 0
         # self.ai.training = self.TRAINING
-        self.TRAININGPARTNER = True
+        self.TRAININGPARTNER = False
         self.partner_side = "right"
 
         self.gameOver = False

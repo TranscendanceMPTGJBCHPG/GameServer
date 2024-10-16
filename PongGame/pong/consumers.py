@@ -104,6 +104,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             player.type = PlayerType.HUMAN.value
             player.is_connected = True
 
+        self.game_wrapper.ai_is_initialized.set()
         self.game_wrapper.all_players_connected.set()
         self.game_wrapper.game.RUNNING_AI = False
 
@@ -420,20 +421,20 @@ class PongConsumer(AsyncWebsocketConsumer):
         await asyncio.sleep(0.00000001)
 
     def handle_player1_input(self, event):
-        if event["event"] == "player1Up" and self.side == "p1":
+        if event["event"] == "player1Up" and self.side == "p1" or self.mode == "PVP_keyboard":
             for _ in range(5):
                 self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
 
-        if event["event"] == "player1Down" and self.side == "p1":
+        if event["event"] == "player1Down" and self.side == "p1" or self.mode == "PVP_keyboard":
             for _ in range(5):
                 self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
 
     def handle_player2_input(self, event):
-        if event["event"] == "player2Up" and self.side == "p2":
+        if event["event"] == "player2Up" and self.side == "p2" or self.mode == "PVP_keyboard":
             for _ in range(5):
                 self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
 
-        if event["event"] == "player2Down" and self.side == "p2":
+        if event["event"] == "player2Down" and self.side == "p2" or self.mode == "PVP_keyboard":
             for _ in range(5):
                 self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
 
@@ -451,6 +452,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["type"] == "greetings":
             return
         elif event["type"] == "start":
+            logging.info("got start event\n\n\n")
             if self.mode == "PVE":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready = True
@@ -458,20 +460,31 @@ class PongConsumer(AsyncWebsocketConsumer):
                 else:
                     self.game_wrapper.player_2.is_ready = True
                     self.game_wrapper.start_event.set()
+            else:
+                if self.mode == "PVP_keyboard":
+                    self.game_wrapper.start_event.set()
+                else:
+                    if self.side == "p1":
+                        self.game_wrapper.player_1.is_ready = True
+                    if self.side == "p2":
+                        self.game_wrapper.player_2.is_ready = True
+                    if self.game_wrapper.player_1.is_ready and self.game_wrapper.player_2.is_ready:
+                        self.game_wrapper.start_event.set()
+
 
 
         elif event["type"] == "keyDown":
-            # logging.info(f"key down event: {event}")
+            logging.info(f"key down event: {event}")
 
             if event["event"] == "pause":
                 if self.mode == "PVE" or "PVP_keyboard":
                     self.game_wrapper.game.pause = not self.game_wrapper.game.pause
 
-            if self.side == "p1":
+            if self.side == "p1" or self.mode == "PVP_keyboard":
                 self.handle_player1_input(event)
 
 
-            if self.side == "p2":
+            if self.side == "p2" or self.mode == "PVP_keyboard":
                 self.handle_player2_input(event)
 
             # if event["event"] == "reset":
