@@ -139,5 +139,10 @@ def ai_get_uid():
             return key
     return None
 
+from django.views.decorators.csrf import csrf_exempt
+@csrf_exempt
 def tournament(request):
+    logging.info(f"tournament, request: {request}\n\n")
     return tournament_maker(request)
+    # return JsonResponse({"ok": "ok"})
+    # return tournament_maker(request)
