@@ -29,4 +29,5 @@ def options(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('game/new/', views.generate_uid, name='generate_uid'),  # URL pour demander un UID
+    path('game/tournament/', views.tournament, name='tournament'),  # URL pour gérer les tournois
 ]

@@ -14,6 +14,7 @@ from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 import asyncio
 import websockets
+from .tournament import tournament_maker
 
 #keep track of the existing uid in a dictionnary, with uid as key and a string as value
 uids = {}
@@ -114,7 +115,7 @@ async def generate_uid(request):
         mode = body['type']
         if mode == 'gameover':
             return(handle_gameover(body))
-               
+
 
 def handle_gameover(request):
     try:
@@ -137,3 +138,6 @@ def ai_get_uid():
             # logger.info(f"AI_get_uid, key: {key}")
             return key
     return None
+
+def tournament(request):
+    return tournament_maker(request)
