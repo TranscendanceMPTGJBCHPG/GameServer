@@ -2,3 +2,6 @@ env
 __pycache__
 .vite
 .idea
+PongGame/__init__.py
+__init__.py
+

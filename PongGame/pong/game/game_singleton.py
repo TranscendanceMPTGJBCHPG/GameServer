@@ -1,6 +1,7 @@
 # pong/game/singleton_game.py
 
 from .game import Game
+from .player import Player
 import asyncio
 
 class GameSingleton:
@@ -14,6 +15,12 @@ class GameSingleton:
     resume_on_goal = asyncio.Event()
     waiting_for_ai = asyncio.Event()
     ai_partner = True
+
+    has_resumed_count = 0
+    has_resumed = asyncio.Event()
+
+    player_1 = Player()
+    player_2 = Player()
 
     present_players = 0
     game = Game()

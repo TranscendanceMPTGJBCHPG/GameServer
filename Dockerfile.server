@@ -23,6 +23,27 @@ EXPOSE 8000
 
 WORKDIR /app/PongGame
 
+
+
+
+
+RUN apt-get update && apt-get install -y \
+    # mesa-utils \
+    # libgl1-mesa-dri \
+    # libgl1-mesa-glx \
+    libx11-dev \
+    libxext-dev \
+    # libxrender-dev \
+    # libxrandr-dev \
+    # libgl1-mesa-dev \
+    libsdl2-dev \
+    libsdl2-image-dev \
+    libsdl2-mixer-dev \
+    libsdl2-ttf-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN mkdir -p /tmp/runtime-docker && chmod 0700 /tmp/runtime-docker
+
 # Command to start the Daphne server
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "PongGame.asgi:application"]
 

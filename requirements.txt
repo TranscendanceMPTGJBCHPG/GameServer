@@ -5,3 +5,5 @@ django
 channels
 daphne
 django-cors-headers
+aiohttp
+asgiref
