@@ -14,19 +14,6 @@ WORKDIR /app
 COPY GameServer/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the application code
-COPY ./GameServer /app/
-
-# Expose the port Daphne will run on
-EXPOSE 8000
-
-
-WORKDIR /app/PongGame
-
-
-
-
-
 RUN apt-get update && apt-get install -y \
     # mesa-utils \
     # libgl1-mesa-dri \
@@ -43,6 +30,17 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /tmp/runtime-docker && chmod 0700 /tmp/runtime-docker
+
+# Copy the application code
+COPY ./GameServer /app/
+
+# Expose the port Daphne will run on
+EXPOSE 8000
+
+
+WORKDIR /app/PongGame
+
+
 
 # Command to start the Daphne server
 CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "PongGame.asgi:application"]
