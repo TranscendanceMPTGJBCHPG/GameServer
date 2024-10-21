@@ -108,10 +108,12 @@ class PongConsumer(AsyncWebsocketConsumer):
         self._setup_lan_common()
 
     def _setup_first_lan_player(self):
+        self.side = "p1"
         self.game_wrapper.player_1.type = PlayerType.HUMAN.value
         self.game_wrapper.player_1.is_connected = True
 
     def _setup_second_lan_player(self):
+        self.side = "p2"
         self.is_main = True
         self.game_wrapper.all_players_connected.set()
         self.game_wrapper.player_2.type = PlayerType.HUMAN.value
@@ -333,16 +335,17 @@ class PongConsumer(AsyncWebsocketConsumer):
             print("greetingsssssss")
             return
         elif event["type"] == "start":
-
             if self.mode == "PVE":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready = True
                 elif self.side == "p2":
                     self.game_wrapper.player_2.is_ready = True
-
-            self.game_wrapper.start_event.set()
-
-
+                    self.game_wrapper.start_event.set()
+            elif self.mode == "PVP_keyboard":
+                self.game_wrapper.start_event.set()
+            elif self.mode == "PVP_LAN":
+                if self.is_main is True:
+                    self.game_wrapper.start_event.set()
         elif event["type"] == "keyDown":
             # logging.info(f"key down event: {event}")
 
