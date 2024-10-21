@@ -20,13 +20,7 @@ class ClientType(Enum):
     AI = 2
     FRONT = 1
 
-
-#add greetings from both clients
-#add clients to clients
-#dict in dict, initial key = game_id
-#on getting greetings, create players with pID and type
 class PongConsumer(AsyncWebsocketConsumer):
-    # print("Pong consumer")
     logger = logging.getLogger(__name__)
     game_wrapper = None
     side = None
@@ -39,31 +33,17 @@ class PongConsumer(AsyncWebsocketConsumer):
     clients = {}
 
     async def connect(self):
-        # self.logger.info(f"scope: {self.scope}")
         self.game_id = self.scope['url_route']['kwargs']['uid']
-        # self.logger.info(f"game id: {self.game_id}")
         self.group_name = f"pong_{self.game_id}"
-        # self.logger.info(f"Group name: {self.group_name}")
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         self.clients[self.channel_name] = self
 
         await self._setup_csrf()
         await self.accept()
-        # self.logger.info(f"New client connected: {self.channel_name}")
-        #check if game_id exists in clients
 
-        logging.info(f"clients: {self.clients}")
         self.game_wrapper = GameSingleton.get_game()
 
         await self._initialize_game_mode()
-
-        # if self.game_id[0] == 'k' and self.game_id[-1] == 'k':
-        #     self.shared_screen_init()
-        #
-        # elif self.game_id[0] == 'P' and self.game_id[1] == 'V' and self.game_id[2] == 'P':
-        #     self.LAN_init()
-        # else:
-        #     self.PVE_init()
 
         if self.is_main is True:
             asyncio.ensure_future(self.generate_states())
@@ -78,8 +58,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.logger.error(f"Error generating CSRF token: {e}")
 
 
-
-
+#*********************GAME MODE INITIALIZATION START********************************
     async def _initialize_game_mode(self):
         if self._is_shared_screen_mode():
             self._init_shared_screen()
@@ -89,7 +68,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             self._init_pve_mode()
 
 
-
+    #********************SHARED SCREEN MODE INITIALIZATION START*********************
     def _is_shared_screen_mode(self):
         return self.game_id[0] == 'k' and self.game_id[-1] == 'k'
 
@@ -108,9 +87,11 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper.ai_is_initialized.set()
         self.game_wrapper.game.RUNNING_AI = False
 
+    #********************SHARED SCREEN MODE INITIALIZATION STOP************************
 
 
 
+    #*********************LAN MODE INITIALIZATION START********************************
     def _is_lan_mode(self):
         return self.game_id.startswith('PVP')
 
@@ -127,10 +108,12 @@ class PongConsumer(AsyncWebsocketConsumer):
         self._setup_lan_common()
 
     def _setup_first_lan_player(self):
+        self.side = "p1"
         self.game_wrapper.player_1.type = PlayerType.HUMAN.value
         self.game_wrapper.player_1.is_connected = True
 
     def _setup_second_lan_player(self):
+        self.side = "p2"
         self.is_main = True
         self.game_wrapper.all_players_connected.set()
         self.game_wrapper.player_2.type = PlayerType.HUMAN.value
@@ -141,12 +124,11 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper.waiting_for_ai.set()
         self.game_wrapper.game.RUNNING_AI = False
 
+    #*********************LAN MODE INITIALIZATION END********************************
 
 
 
-
-
-
+    #*********************PVE MODE INITIALIZATION START******************************
     def _init_pve_mode(self):
         self.mode = GameMode.PVE.value
         # self._setup_pve_players()
@@ -158,7 +140,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             self._handle_first_pve_connection(self.game_id)
 
         self.game_wrapper.game.RUNNING_AI = True
-
 
     def _handle_first_pve_connection(self, game_id):
         ai_is_player_one = game_id[-1] == '1'
@@ -189,101 +170,11 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.is_main = True
         self.game_wrapper.all_players_connected.set()
 
+    #*********************PVE MODE INITIALIZATION END********************************
 
-    # def _setup_pve_players(self):
-    #     ai_is_player_one = self.game_id[-1] == '1'
-    #     self.side = "p2" if ai_is_player_one else "p1"
-    #
-    #     if ai_is_player_one:
-    #         self.game_wrapper.player_2.type = PlayerType.AI.value
-    #         self.game_wrapper.player_1.type = PlayerType.HUMAN.value
-    #     else:
-    #         self.game_wrapper.player_1.type = PlayerType.AI.value
-    #         self.game_wrapper.player_2.type = PlayerType.HUMAN.value
+#*********************GAME MODE INITIALIZATION END********************************
 
-
-
-
-
-    # def shared_screen_init(self):
-    #     self.mode = 'PVP_keyboard'
-    #     self.client = FRONT
-    #     self.is_main = True
-    #
-    #
-    #     self.game_wrapper.present_players += 2
-    #     self.game_wrapper.player_1.type = "Human"
-    #     self.game_wrapper.player_2.type = "Human"
-    #     self.game_wrapper.player_1.is_connected = True# self.logger.info("Main client connected")
-    #         # self.logger.info(f"number of connected clients: {self.game_wrapper.present_players}")
-    #     self.game_wrapper.player_2.is_connected = True
-    #     self.game_wrapper.all_players_connected.set()
-    #     # self.game_wrapper.ai_is_initialized.set()
-    #     # self.game_wrapper.waiting_for_ai.set()
-    #     self.game_wrapper.game.RUNNING_AI = False
-    #
-    # def LAN_init(self):
-    #     self.mode = 'PVP_LAN'
-    #     self.client = FRONT
-    #     self.game_wrapper.present_players += 1
-    #     if self.game_wrapper.present_players == 2:
-    #         self.is_main = True
-    #         self.game_wrapper.all_players_connected.set()
-    #         self.game_wrapper.player_2.type = "Human"
-    #         self.game_wrapper.player_2.is_connected = True
-    #     else:
-    #         self.game_wrapper.player_1.type = "Human"
-    #         self.game_wrapper.player_1.is_connected = True
-    #     self.game_wrapper.ai_is_initialized.set()
-    #     self.game_wrapper.waiting_for_ai.set()
-    #     self.game_wrapper.game.RUNNING_AI = False
-    #
-    # def PVE_init(self):
-    #     self.mode = "PVE"
-    #     if self.game_id[-1] == '1':
-    #         self.side = "p1"
-    #         self.game_wrapper.player_2.type = "AI"
-    #         self.game_wrapper.player_2.type = "Human"
-    #     else:
-    #         self.side = "p2"
-    #         self.game_wrapper.player_2.type = "Human"
-    #         self.game_wrapper.player_2.type = "AI"
-    #     self.game_wrapper.present_players += 1
-    #
-    #
-    #     if self.game_wrapper.present_players == 2:
-    #
-    #         #AI connection
-    #         if self.game_id[-1] == '1':
-    #             self.game_wrapper.player_1.is_connected = True
-    #             self.game_wrapper.player_1.is_ready = True
-    #             logging.info(f" left player connected: {self.game_wrapper.player_1.type}")
-        #     else:
-        #         self.game_wrapper.player_2.is_connected = True
-        #         self.game_wrapper.player_2.is_ready = True
-        #         logging.info(f"right player connected: {self.game_wrapper.player_2.type}")
-        #
-        #     self.is_main = True
-        #     self.game_wrapper.all_players_connected.set()
-        #
-        # else:
-        #     #human connection
-        #     if self.game_id[-1] == '1':
-        #         self.side = 'p2'
-        #         self.game_wrapper.player_2.type = "Human"
-        #         self.game_wrapper.player_2.is_connected = True
-        #         self.game_wrapper.player_1.type = "AI"
-        #         logging.info(f"right player connected: {self.game_wrapper.player_2.type}")
-        #     else:
-        #         self.side = 'p1'
-        #         self.game_wrapper.player_1.type = "Human"
-        #         self.game_wrapper.player_1.is_connected = True
-        #         self.game_wrapper.player_2.type = "AI"
-        #         logging.info(f"left player connected: {self.game_wrapper.player_1.type}")
-        # self.game_wrapper.game.RUNNING_AI = True
-
-    # self.logger.info(f"PongConsumer connected and added to group 'pong': {self.channel_name}")
-
+#******************************DISCONNECT********************************
 
     async def disconnect(self, close_code):
         # Déconnecter WebSocket proprement
@@ -292,76 +183,67 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper.present_players -= 1
         self.game_wrapper.game.pause = True
         self.game_wrapper.game_over.set()
-        self.logger.info(f"Client disconnected: {self.channel_name}")
+
         try:
-            if self.mode == "PVE":
-                if self.client == ClientType.FRONT:
-                    winner = "Human"
-                else:
-                    winner = "AI"
-            elif self.mode == "PVP_keyboard":
-                if self.game_wrapper.game.paddle1.score > self.game_wrapper.game.paddle2.score:
-                    winner = "Player1"
-                else:
-                    winner = "Player2"
-            else:
-                if self.is_main is True:
-                    winner = "Player1"
-                else:
-                    winner = "Player2"
-
             url = 'http://nginx:7777/game/new/'
-            data = {
-                'type': 'gameover',
-                'sender': 'game',
-                'uid': self.game_id,
-                'winner': winner,
-            }
-            logging.info(f"before get token")
             csrf_token = self.scope['session'].get('csrf_token', get_new_csrf_string_async())
-            logging.info(f"csrf token: {csrf_token}")
+            data = self.generate_gameover_data()
 
-            headers = {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': csrf_token
-            }
-
-            # logging.info(f"Sending gameover event: {data}")
-
-            # Convertir le corps de la requête en JSON
-            # data = json.dumps(data).encode('utf-8')
-
-            # Créer l'objet Request
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                         url,
-                        json=data,
-                        headers=headers,
-                        cookies={'csrftoken': csrf_token}
+                        json= data,
+                        headers= self.generate_headers(csrf_token),
+                        cookies= {'csrftoken': csrf_token}
                 ) as response:
                     if response.status == 403:
                         logging.error("CSRF validation failed")
                         return None
 
-            #send data to the other client
-            remaining_client = list(self.clients.values())[0]
-            await remaining_client.send(json.dumps(data))
-
-
-
-
-            # for client, value in self.clients.values():
-            #     if value != self:
-            #         await client.send(json.dumps(data))
-            #
-            #         content = await response.text()
-            #         return json.loads(content)
-            #         # print(f"UID: {data}")
-
+            await self.send_gameover_to_remaining_client(data)
 
         except Exception as e:
             logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
 
+    async def send_gameover_to_remaining_client(self, data):
+        remaining_client = list(self.clients.values())[0]
+        await remaining_client.send(json.dumps(data))
+
+    def generate_headers(self, token):
+        headers = {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': token
+        }
+        return headers
+
+    def generate_gameover_data(self):
+        data = {
+            'type': 'gameover',
+            'sender': 'game',
+            'uid': self.game_id,
+            'winner': self.get_winner(),
+        }
+        return data
+
+    def get_winner(self):
+        if self.mode == "PVE":
+            if self.client == ClientType.FRONT:
+                winner = "Human"
+            else:
+                winner = "AI"
+        elif self.mode == "PVP_keyboard":
+            if self.game_wrapper.game.paddle1.score > self.game_wrapper.game.paddle2.score:
+                winner = "Player1"
+            else:
+                winner = "Player2"
+        else:
+            if self.is_main is True:
+                winner = "Player1"
+            else:
+                winner = "Player2"
+
+        return winner
+#******************************DISCONNECT********************************
 
 
     async def receive(self, text_data):
@@ -453,16 +335,17 @@ class PongConsumer(AsyncWebsocketConsumer):
             print("greetingsssssss")
             return
         elif event["type"] == "start":
-
             if self.mode == "PVE":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready = True
                 elif self.side == "p2":
                     self.game_wrapper.player_2.is_ready = True
-
-            self.game_wrapper.start_event.set()
-
-
+                    self.game_wrapper.start_event.set()
+            elif self.mode == "PVP_keyboard":
+                self.game_wrapper.start_event.set()
+            elif self.mode == "PVP_LAN":
+                if self.is_main is True:
+                    self.game_wrapper.start_event.set()
         elif event["type"] == "keyDown":
             # logging.info(f"key down event: {event}")
 
