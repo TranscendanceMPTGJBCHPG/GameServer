@@ -39,7 +39,7 @@ class Game:
         self.RUNNING_AI = True
         self.DIFFICULTY = 3
         self.SAVING = False
-        self.TRAINING = True
+        self.TRAINING = False
         self.LOADING = False
         self.testing = True
         self.lastDump = 0
@@ -52,7 +52,7 @@ class Game:
         # self.init_ai()
 
         # game related variables
-        self.scoreLimit = 100
+        self.scoreLimit = 2
         self.run = True
         self.pause = False
         self.goal1 = False
@@ -336,6 +336,7 @@ class Game:
         if self.TRAINING == False:
             if self.paddle1.score >= self.scoreLimit or self.paddle2.score >= self.scoreLimit:
                 self.gameOver = True
+                self.pause = True
                 return True
         if self.gameOver == True:
             return True
