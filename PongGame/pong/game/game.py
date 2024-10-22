@@ -39,7 +39,7 @@ class Game:
         self.RUNNING_AI = True
         self.DIFFICULTY = 3
         self.SAVING = False
-        self.TRAINING = True
+        self.TRAINING = False
         self.LOADING = False
         self.testing = True
         self.lastDump = 0
@@ -52,7 +52,7 @@ class Game:
         # self.init_ai()
 
         # game related variables
-        self.scoreLimit = 100
+        self.scoreLimit = 2
         self.run = True
         self.pause = False
         self.goal1 = False
@@ -270,6 +270,8 @@ class Game:
                 self.serialize()
                 self.last_frame_time = current_time
                 # print(f"game state: {self.gameState}")
+                # if self.gameState["gameover"] != None:
+                    # logging.info("Game Over SENT \n\n\n\n")
                 yield json.dumps(self.gameState)
 
 
@@ -336,8 +338,10 @@ class Game:
         if self.TRAINING == False:
             if self.paddle1.score >= self.scoreLimit or self.paddle2.score >= self.scoreLimit:
                 self.gameOver = True
+                self.pause = True
                 return True
         if self.gameOver == True:
+            self.pause = True
             return True
         return False
 
@@ -360,6 +364,7 @@ class Game:
         self.gameState["paddle2"] = self.paddle2.serialize(self)
         if self.isgameover():
             self.gameState["gameover"] = "Score"
+            # logging.info("Game Over on data\n\n\n")
         else:
             self.gameState["gameover"] = None
     

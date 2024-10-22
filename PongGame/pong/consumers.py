@@ -392,10 +392,6 @@ class PongConsumer(AsyncWebsocketConsumer):
 
             state_dict = json.loads(state)
             # logging.info(f"state dict: {state_dict}")
-            if state_dict["gameover"] != None:
-                self.game_wrapper.game.quit()
-                self.game_wrapper.game_over.set()
-                break
             if self.game_wrapper.has_resumed.is_set():
                 self.game_wrapper.has_resumed.clear()
 
@@ -406,10 +402,38 @@ class PongConsumer(AsyncWebsocketConsumer):
                     await client.send(text_data=json.dumps(state_dict))
                     self.game_wrapper.waiting_for_ai.clear()
                     await asyncio.sleep(0.0000001)
+                if state_dict["gameover"] == "score":
+                    self.game_wrapper.game.quit()
+                    self.game_wrapper.game_over.set()
+                    await self.handle_gameover_score_limit()
+                    return
+
             except Exception as e:
                 logging.info(f"an error happened, during send")
                 return
             x += 1
 
             await asyncio.sleep(0.00000001)
+
+    async def handle_gameover_score_limit(self):
+        try:
+            url = 'http://nginx:7777/game/new/'
+            csrf_token = self.scope['session'].get('csrf_token', get_new_csrf_string_async())
+            data = self.generate_gameover_data()
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                        url,
+                        json= data,
+                        headers= self.generate_headers(csrf_token),
+                        cookies= {'csrftoken': csrf_token}
+                ) as response:
+                    if response.status == 403:
+                        logging.error("CSRF validation failed")
+                        return None
+
+            await self.send_gameover_to_remaining_client(data)
+
+        except Exception as e:
+            logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
 
