@@ -344,7 +344,11 @@ class PongConsumer(AsyncWebsocketConsumer):
             elif self.mode == "PVP_keyboard":
                 self.game_wrapper.start_event.set()
             elif self.mode == "PVP_LAN":
-                if self.is_main is True:
+                if self.side == "p1":
+                    self.game_wrapper.player_1.is_ready = True
+                elif self.side == "p2":
+                    self.game_wrapper.player_2.is_ready = True
+                if self.game_wrapper.player_1.is_ready and self.game_wrapper.player_2.is_ready:
                     self.game_wrapper.start_event.set()
         elif event["type"] == "keyDown":
             # logging.info(f"key down event: {event}")
