@@ -1,11 +1,12 @@
 import json
 import asyncio
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .game.game_singleton import GameSingleton
+from .game.game_wrapper import GameWrapper
 import logging
 import aiohttp
 from .utils import get_new_csrf_string_async
 from enum import Enum
+from .game.game_manager import game_manager
 
 class PlayerType(Enum):
     HUMAN = "Human"
@@ -34,6 +35,10 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.game_id = self.scope['url_route']['kwargs']['uid']
+
+        self.game_wrapper = await game_manager.create_or_get_game(self.game_id)
+
+
         self.group_name = f"pong_{self.game_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         self.clients[self.channel_name] = self
@@ -41,9 +46,10 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self._setup_csrf()
         await self.accept()
 
-        self.game_wrapper = GameSingleton.get_game()
+        # self.game_wrapper = GameWrapper.get_game()
 
         await self._initialize_game_mode()
+        logging.info(f"number of connected players: {self.game_wrapper.present_players}")
 
         if self.is_main is True:
             asyncio.ensure_future(self.generate_states())
