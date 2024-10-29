@@ -15,7 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, re_path
 from pong import views
 from django.http import JsonResponse
 
@@ -30,4 +30,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('game/new/', views.generate_uid, name='generate_uid'),  # URL pour demander un UID
     path('game/tournament/', views.tournament, name='tournament'),  # URL pour gérer les tournois
-]
+    re_path(r'^game/cleanup/([a-zA-Z0-9]{8}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{4}-[a-zA-Z0-9]{12})/$',
+            views.cleanup_game,
+            name='cleanup_game'),
+    ]
