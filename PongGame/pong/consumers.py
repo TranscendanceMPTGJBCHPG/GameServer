@@ -222,169 +222,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             logging.error(f"Error in disconnect: {str(e)}")
             logging.error(f"Full error details: {e.__class__.__name__}")
 
-    # async def disconnect(self, close_code):
-    #     try:
-    #         # Déconnecter WebSocket proprement
-    #         await self.channel_layer.group_discard("pong", self.channel_name)
-    #         del self.clients[self.channel_name]
-    #
-    #         if self.game_wrapper:
-    #             self.game_wrapper.present_players -= 1
-    #             self.game_wrapper.game.pause = True
-    #             self.game_wrapper.game_over.set()
-    #
-    #         # Utiliser l'URL du proxy nginx avec https
-    #         base_url = f"https://nginx:7777"
-    #
-    #         async with aiohttp.ClientSession() as session:
-    #             # Cleanup request via nginx
-    #             cleanup_url = f"{base_url}/game/cleanup/{self.game_id}/"
-    #             try:
-    #                 async with session.delete(
-    #                         cleanup_url,
-    #                         ssl=False,  # Désactive la vérification SSL pour le développement
-    #                         headers=self.generate_headers(self.scope['session'].get('csrf_token'))
-    #                 ) as response:
-    #                     if response.status != 200:
-    #                         logging.error(f"Cleanup failed: {response.status}")
-    #                         logging.error(f"Response: {await response.text()}")
-    #             except Exception as e:
-    #                 logging.error(f"Cleanup request error: {str(e)}")
-    #
-    #             # Gameover request
-    #             data = self.generate_gameover_data()
-    #             gameover_url = f"{base_url}/game/new/"
-    #             try:
-    #                 async with session.post(
-    #                         gameover_url,
-    #                         json=data,
-    #                         ssl=False,
-    #                         headers=self.generate_headers(self.scope['session'].get('csrf_token')),
-    #                         cookies={'csrftoken': self.scope['session'].get('csrf_token')}
-    #                 ) as response:
-    #                     if response.status != 200:
-    #                         logging.error(f"Gameover failed: {response.status}")
-    #                         logging.error(f"Response: {await response.text()}")
-    #             except Exception as e:
-    #                 logging.error(f"Gameover request error: {str(e)}")
-    #
-    #             await self.send_gameover_to_remaining_client(data)
-    #
-    #     except Exception as e:
-    #         logging.error(f"Error in disconnect: {str(e)}")
-    #         logging.error(f"Full error details: {e.__class__.__name__}")
-
-    # async def disconnect(self, close_code):
-    #     try:
-    #         # Déconnecter WebSocket proprement
-    #         await self.channel_layer.group_discard("pong", self.channel_name)
-    #         del self.clients[self.channel_name]
-    #
-    #         if self.game_wrapper:
-    #             self.game_wrapper.present_players -= 1
-    #             self.game_wrapper.game.pause = True
-    #             self.game_wrapper.game_over.set()
-    #
-    #         # Notifier le service de matchmaking pour nettoyer la partie
-    #         url = f'https://{self.scope["server"][0]}:7777/game/cleanup/{self.game_id}/'
-    #         csrf_token = self.scope['session'].get('csrf_token', get_new_csrf_string_async())
-    #
-    #         async with aiohttp.ClientSession() as session:
-    #             async with session.delete(
-    #                     url,
-    #                     headers=self.generate_headers(csrf_token),
-    #                     ssl=False
-    #             ) as response:
-    #                 if response.status == 200:
-    #                     logging.info(f"Successfully cleaned up game {self.game_id}")
-    #                 else:
-    #                     logging.error(f"Failed to clean up game {self.game_id}: {response.status}")
-    #
-    #         # Envoyer le message de fin de partie
-    #         data = self.generate_gameover_data()
-    #         url = 'http://nginx:7777/game/new/'
-    #
-    #         async with aiohttp.ClientSession() as session:
-    #             async with session.post(
-    #                     url,
-    #                     json=data,
-    #                     headers=self.generate_headers(csrf_token),
-    #                     cookies={'csrftoken': csrf_token}
-    #             ) as response:
-    #                 if response.status == 403:
-    #                     logging.error("CSRF validation failed")
-    #                     return None
-    #
-    #         await self.send_gameover_to_remaining_client(data)
-    #
-    #     except Exception as e:
-    #         logging.error(f"Error in disconnect: {str(e)}")
-
-
-    # async def disconnect(self, close_code):
-    #     # Déconnecter WebSocket proprement
-    #     await self.channel_layer.group_discard("pong", self.channel_name)
-    #     del self.clients[self.channel_name]
-    #
-    #     # Nettoyer l'état du jeu
-    #     if self.game_wrapper:
-    #         self.game_wrapper.present_players -= 1
-    #         self.game_wrapper.game.pause = True
-    #         self.game_wrapper.game_over.set()
-    #
-    #         # Nettoyer l'instance du jeu du game_manager
-    #         await game_manager.remove_game(self.game_id)
-    #
-    #     try:
-    #         url = 'http://nginx:7777/game/new/'
-    #         csrf_token = self.scope['session'].get('csrf_token', get_new_csrf_string_async())
-    #         data = self.generate_gameover_data()
-    #
-    #         async with aiohttp.ClientSession() as session:
-    #             async with session.post(
-    #                     url,
-    #                     json=data,
-    #                     headers=self.generate_headers(csrf_token),
-    #                     cookies={'csrftoken': csrf_token}
-    #             ) as response:
-    #                 if response.status == 403:
-    #                     logging.error("CSRF validation failed")
-    #                     return None
-    #
-    #         await self.send_gameover_to_remaining_client(data)
-    #
-    #     except Exception as e:
-    #         logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
-
-    # async def disconnect(self, close_code):
-    #     # Déconnecter WebSocket proprement
-    #     await self.channel_layer.group_discard("pong", self.channel_name)
-    #     del self.clients[self.channel_name]
-    #     self.game_wrapper.present_players -= 1
-    #     self.game_wrapper.game.pause = True
-    #     self.game_wrapper.game_over.set()
-    #
-    #     try:
-    #         url = 'http://nginx:7777/game/new/'
-    #         csrf_token = self.scope['session'].get('csrf_token', get_new_csrf_string_async())
-    #         data = self.generate_gameover_data()
-    #
-    #         async with aiohttp.ClientSession() as session:
-    #             async with session.post(
-    #                     url,
-    #                     json= data,
-    #                     headers= self.generate_headers(csrf_token),
-    #                     cookies= {'csrftoken': csrf_token}
-    #             ) as response:
-    #                 if response.status == 403:
-    #                     logging.error("CSRF validation failed")
-    #                     return None
-    #
-    #         await self.send_gameover_to_remaining_client(data)
-    #
-    #     except Exception as e:
-    #         logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
-
     async def send_gameover_to_remaining_client(self, data):
         remaining_client = list(self.clients.values())[0]
         await remaining_client.send(json.dumps(data))
@@ -540,11 +377,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             if self.side == "p2" or self.mode == "PVP_keyboard":
                 self.handle_player2_input(event)
 
-            # if event["event"] == "reset":
-            #     self.game_wrapper.game.ball.reset(self.game_wrapper.game.ball.x, self.game_wrapper.game.display)
-            #     self.game_wrapper.game.state = self.game_wrapper.game.getGameState()
-            #     self.game_wrapper.game.lastSentInfos = 0
-
         elif event["type"] == "keyUp":
             if event["event"] == "c":
                 if self.game_wrapper.game.display is False:
@@ -565,20 +397,20 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.logger.info("state gen set")
         x = 0
         async for state in self.game_wrapper.game.rungame():
-            # logging.info("in state gen")
-            # print(f"in state, waiting for ai: {self.game_wrapper.waiting_for_ai.is_set()}")
-            # if self.game_wrapper.game.RUNNING_AI is True:
-            #     await self.game_wrapper.waiting_for_ai.wait()
-
             state_dict = json.loads(state)
+            state_dict["game_mode"] = self.mode
             # logging.info(f"state dict: {state_dict}")
             if self.game_wrapper.has_resumed.is_set():
                 self.game_wrapper.has_resumed.clear()
 
             try:
+                if state_dict['winner'] is not None:
+                    winner = state_dict['winner']
+                else:
+                    winner = None
                 for client in self.clients.values():
-                    # if state_dict["type"] == 'ResumeOnGoalDone':
-                    #     logging.info(f"\n\n\nsending resume on goal done {state_dict}\n\n\n")
+                    if winner is not None:
+                        state_dict = await self.determine_winner(state_dict, winner, client)
                     await client.send(text_data=json.dumps(state_dict))
                     self.game_wrapper.waiting_for_ai.clear()
                     await asyncio.sleep(0.0000001)
@@ -594,6 +426,24 @@ class PongConsumer(AsyncWebsocketConsumer):
             x += 1
 
             await asyncio.sleep(0.00000001)
+
+    async def determine_winner(self, state_dict, winner, client):
+        logging.info(f"in determine winner")
+        if state_dict["game_mode"] != GameMode.PVP_KEYBOARD.value:
+            if winner == '1':
+                if client.side == "p1":
+                    state_dict["winner"] = "self"
+                else:
+                    state_dict["winner"] = "adversary"
+            else:
+                if client.side == "p2":
+                    state_dict["winner"] = "self"
+                else:
+                    state_dict["winner"] = "adversary"
+        else:
+            state_dict["winner"] = winner
+        logging.info(f"state dict return determine_winner: {state_dict}")
+        return state_dict
 
     async def handle_gameover_score_limit(self):
         try:

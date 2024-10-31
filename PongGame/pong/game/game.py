@@ -364,9 +364,11 @@ class Game:
         self.gameState["paddle2"] = self.paddle2.serialize(self)
         if self.isgameover():
             self.gameState["gameover"] = "Score"
+            self.gameState["winner"] = "1" if self.paddle1.score >= self.scoreLimit else "2"
             # logging.info("Game Over on data\n\n\n")
         else:
             self.gameState["gameover"] = None
+            self.gameState["winner"] = None
     
 
     def gameSerialize(self):
