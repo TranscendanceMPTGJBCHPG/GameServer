@@ -72,6 +72,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             self._init_lan_mode()
         else:
             self._init_pve_mode()
+        await self.send(json.dumps({"type": "greetings", "side": self.side}))
 
 
     #********************SHARED SCREEN MODE INITIALIZATION START*********************
@@ -396,6 +397,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.game_wrapper.start_event.wait()
         self.logger.info("state gen set")
         x = 0
+        await asyncio.sleep(2)
         async for state in self.game_wrapper.game.rungame():
             state_dict = json.loads(state)
             state_dict["game_mode"] = self.mode
@@ -409,6 +411,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 else:
                     winner = None
                 for client in self.clients.values():
+                    state_dict['side'] = client.side
                     if winner is not None:
                         state_dict = await self.determine_winner(state_dict, winner, client)
                     await client.send(text_data=json.dumps(state_dict))
