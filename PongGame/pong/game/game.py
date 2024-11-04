@@ -30,8 +30,8 @@ class Game:
 
         # Init objects
         self.ball: Ball = Ball(self.width // 2, self.height // 2, self.height // 100, self.width, self.height, self.display)
-        self.paddle1: Paddle = Paddle(self.width // 30, self.height // 2 - (self.height // 6), self.height // 150, self.height // 6, self.width, self.height)
-        self.paddle2: Paddle = Paddle(self.width - self.width // 30, self.height // 2 - (self.height // 6), self.height // 150, self.height // 6, self.width, self.height)
+        self.paddle1: Paddle = Paddle(self.width // 30, self.height // 2 - (self.height // 6 // 2), self.height // 150, self.height // 6, self.width, self.height)
+        self.paddle2: Paddle = Paddle(self.width - self.width // 30, self.height // 2 - (self.height // 6 // 2), self.height // 150, self.height // 6, self.width, self.height)
         # self.ai = QL_AI(self.width, self.height, self.paddle2.width, self.paddle2.height)
         # self.state = self.getGameState()
 

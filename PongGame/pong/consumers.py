@@ -356,6 +356,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             if self.mode == "PVE":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready = True
+                    self.game_wrapper.start_event.set()
                 elif self.side == "p2":
                     self.game_wrapper.player_2.is_ready = True
                     self.game_wrapper.start_event.set()
@@ -431,7 +432,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             await asyncio.sleep(0.00000001)
 
     async def determine_winner(self, state_dict, winner, client):
-        logging.info(f"in determine winner")
+        # logging.info(f"in determine winner")
         if state_dict["game_mode"] != GameMode.PVP_KEYBOARD.value:
             if winner == '1':
                 if client.side == "p1":
@@ -445,7 +446,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                     state_dict["winner"] = "adversary"
         else:
             state_dict["winner"] = winner
-        logging.info(f"state dict return determine_winner: {state_dict}")
+        # logging.info(f"state dict return determine_winner: {state_dict}")
         return state_dict
 
     async def handle_gameover_score_limit(self):
