@@ -41,7 +41,10 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         self.group_name = f"pong_{self.game_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
-        self.clients[self.channel_name] = self
+        if self.group_name not in self.clients:
+            self.clients[self.group_name] = []
+        self.clients[self.group_name].append(self)
+        logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
 
         await self._setup_csrf()
         await self.accept()
@@ -186,7 +189,9 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         try:
             await self.channel_layer.group_discard("pong", self.channel_name)
-            del self.clients[self.channel_name]
+            for client in self.clients[self.group_name]:
+                if client == self:
+                    del self.clients[self.channel_name]
 
             if self.game_wrapper:
                 self.game_wrapper.present_players -= 1
@@ -224,7 +229,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             logging.error(f"Full error details: {e.__class__.__name__}")
 
     async def send_gameover_to_remaining_client(self, data):
-        remaining_client = list(self.clients.values())[0]
+        remaining_client = list(self.clients[self.group_name].values())[0]
         await remaining_client.send(json.dumps(data))
 
     def generate_headers(self, token):
@@ -411,7 +416,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                     winner = state_dict['winner']
                 else:
                     winner = None
-                for client in self.clients.values():
+                # logging.info(f"self.clients[self.channel_name]: {self.clients[self.group_name]}")
+                for client in self.clients[self.group_name]:
                     state_dict['side'] = client.side
                     if winner is not None:
                         state_dict = await self.determine_winner(state_dict, winner, client)
