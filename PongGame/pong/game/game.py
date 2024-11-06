@@ -52,7 +52,7 @@ class Game:
         # self.init_ai()
 
         # game related variables
-        self.scoreLimit = 2
+        self.scoreLimit = 11
         self.run = True
         self.pause = False
         self.goal1 = False

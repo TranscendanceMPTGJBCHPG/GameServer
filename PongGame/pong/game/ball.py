@@ -51,11 +51,11 @@ class Ball:
             else:
                 goalAngle = random.uniform(150, 180)
         angle_rad = math.radians(goalAngle)
-        if display is True:
-            self.max_speed = self.win_width * self.win_height // 350000
-        else:
-            self.max_speed = self.win_width * self.win_height // 1000000
-            # self.max_speed = self.win_width * self.win_height // 350000
+        # if display is True:
+        #     self.max_speed = self.win_width * self.win_height // 350000
+        # else:
+        #     self.max_speed = self.win_width * self.win_height // 1000000
+        #     # self.max_speed = self.win_width * self.win_height // 350000
         speed = self.max_speed / 3.5
         self.x_vel = speed * math.cos(angle_rad)
         self.y_vel = speed * math.sin(angle_rad)
