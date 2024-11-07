@@ -408,8 +408,12 @@ class PongConsumer(AsyncWebsocketConsumer):
             state_dict = json.loads(state)
             state_dict["game_mode"] = self.mode
             # logging.info(f"state dict: {state_dict}")
-            if self.game_wrapper.has_resumed.is_set():
+            if self.game_wrapper.has_resumed.is_set() is False:
+                state_dict["resumeOnGoal"] = False
+            else:
+                state_dict["resumeOnGoal"] = True
                 self.game_wrapper.has_resumed.clear()
+
 
             try:
                 if state_dict['winner'] is not None:
