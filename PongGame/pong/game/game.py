@@ -45,14 +45,14 @@ class Game:
         self.lastDump = 0
         # self.ai.training = self.TRAINING
         self.TRAININGPARTNER = False
-        self.partner_side = "right"
+        self.partner_side = "left"
 
         self.gameOver = False
 
         # self.init_ai()
 
         # game related variables
-        self.scoreLimit = 11
+        self.scoreLimit = 1000000000
         self.run = True
         self.pause = False
         self.goal1 = False
@@ -174,7 +174,11 @@ class Game:
             if self.display == True:
                 self.handlePlayer1Inputs()
         else:
-            self.paddle2.y = self.nextCollision[1] - self.paddle1.height // 2
+            if self.partner_side == "left":
+                self.paddle1.y = self.nextCollision[1] + random.uniform(-(self.paddle1.height * 0.9 // 2), (self.paddle1.height * 0.9 // 2)) - self.paddle1.height // 2
+
+            else:
+                self.paddle2.y = self.nextCollision[1] + random.uniform(-(self.paddle1.height * 0.9 // 2), (self.paddle1.height * 0.9 // 2)) - self.paddle1.height // 2
         if not self.RUNNING_AI:
             if self.CLI_controls == True:
                 self.handlePlayer2Inputs()

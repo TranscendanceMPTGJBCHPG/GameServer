@@ -262,7 +262,7 @@ class Ball:
             if tempBall.y - tempBall.radius <= 0 or tempBall.y + tempBall.radius >= self.win_height:
                 tempBall.y_vel = -tempBall.y_vel
 
-        tempBall.y += random.uniform(-(paddle.height * 0.9 // 2), (paddle.height * 0.9 // 2))
+        # tempBall.y += random.uniform(-(paddle.height * 0.9 // 2), (paddle.height * 0.9 // 2))
         res.append(tempBall.y)
         return res # Retourne la position y correspondant
 
