@@ -45,8 +45,8 @@ class Game:
         self.lastDump = 0
         # self.ai.training = self.TRAINING
         self.TRAININGPARTNER = True
-        self.partner_side = "right"
-        # self.partner_side = "left"
+        # self.partner_side = "right"
+        self.partner_side = "left"
 
         self.gameOver = False
 

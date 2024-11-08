@@ -35,6 +35,12 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.game_id = self.scope['url_route']['kwargs']['uid']
+        await self._setup_csrf()
+
+        if await self.verify_game_uid() is False:
+            logging.info(f"Invalid game ID: {self.game_id}")
+            await self.close()
+            return        
 
         self.game_wrapper = await game_manager.create_or_get_game(self.game_id)
 
@@ -46,7 +52,6 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.clients[self.group_name].append(self)
         logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
 
-        await self._setup_csrf()
         await self.accept()
 
         # self.game_wrapper = GameWrapper.get_game()
@@ -65,6 +70,29 @@ class PongConsumer(AsyncWebsocketConsumer):
                 await self.scope["session"].save()
             except Exception as e:
                 self.logger.error(f"Error generating CSRF token: {e}")
+
+    async def verify_game_uid(self):
+        async with aiohttp.ClientSession() as session:
+                verify_url = f"https://nginx:7777/game/verify/{self.game_id}/"
+                headers = self.generate_headers(self.scope['session'].get('csrf_token'))
+
+                try:
+                    async with session.get(
+                            verify_url,
+                            ssl=False,
+                            headers=headers
+                    ) as response:
+                        response_text = await response.text()
+                        if response.status not in [200, 404]:  # On accepte 404 si le jeu est déjà nettoyé
+                            logging.error(f"verify failed: {response.status}")
+                            logging.error(f"Response: {response_text}")
+                            return False
+                        else:
+                            logging.info(f"verify successful for game {self.game_id}")
+                            return True
+                except Exception as e:
+                    logging.error(f"verify request error: {str(e)}")
+                    return False
 
 
 #*********************GAME MODE INITIALIZATION START********************************
