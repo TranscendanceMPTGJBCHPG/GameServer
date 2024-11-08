@@ -44,7 +44,7 @@ class Game:
         self.testing = True
         self.lastDump = 0
         # self.ai.training = self.TRAINING
-        self.TRAININGPARTNER = True
+        self.TRAININGPARTNER = False
         # self.partner_side = "right"
         self.partner_side = "left"
 
@@ -75,6 +75,8 @@ class Game:
 
         self.p1_successive_inputs = []
         self.p2_successive_inputs = []
+
+        self.frame_rate = 30
 
 
     def init_display(self):
@@ -262,7 +264,7 @@ class Game:
 
                 self.handle_inputs()
                 ball.move()
-                ball.friction()
+                # ball.friction()
                 self.handle_collisions_on_paddle()
                 self.handle_collisions_on_border()
                 self.handle_scores()
@@ -271,7 +273,7 @@ class Game:
                     self.redraw_window()
 
             # send JSON game state
-            if current_time - self.last_frame_time >= 1/60 or self.isgameover() == True and self.display == False:
+            if current_time - self.last_frame_time >= 1/self.frame_rate or self.isgameover() == True and self.display == False:
                 self.serialize()
                 self.last_frame_time = current_time
                 # print(f"game state: {self.gameState}")

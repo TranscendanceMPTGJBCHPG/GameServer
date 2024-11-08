@@ -217,6 +217,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def disconnect(self, close_code):
         try:
             await self.channel_layer.group_discard("pong", self.channel_name)
+            self.close()
             for client in self.clients[self.group_name]:
                 if client == self:
                     del self.clients[self.channel_name]
@@ -320,13 +321,13 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["type"] == "move":
             # logging.info(f"AI move event: {event}\n\n")
             if event["direction"] == "up":
-                for _ in range(3):
+                for _ in range(5):
                     if self.side == "p1":
                         self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
                     else:
                         self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
             if event["direction"] == "down":
-                for _ in range(3):
+                for _ in range(5):
                     if self.side == "p1":
                         self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
                     else:

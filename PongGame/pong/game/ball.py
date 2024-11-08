@@ -19,10 +19,11 @@ class Ball:
         self.win_width = win_width
         self.win_height = win_height
         self.display = display
-        if self.display is True:
-            self.max_speed = self.win_width * self.win_height // 350000
-        else:
-            self.max_speed = self.win_width * self.win_height // 1000000
+        # if self.display is True:
+        #     self.max_speed = self.win_width * self.win_height // 350000
+        # else:
+        # self.max_speed = self.win_width * self.win_height // 1000000
+        self.max_speed = self.win_width * self.win_height / 2500000
         self.radius = radius
         self.x_vel = self.max_speed / 3.5
         self.y_vel = 0
