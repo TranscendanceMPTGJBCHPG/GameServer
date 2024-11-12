@@ -218,9 +218,12 @@ class PongConsumer(AsyncWebsocketConsumer):
         try:
             await self.channel_layer.group_discard("pong", self.channel_name)
             self.close()
+            logging.info(f"in disconnect, after close")
             for client in self.clients[self.group_name]:
                 if client == self:
-                    del self.clients[self.channel_name]
+                    logging.info(f"ietrate through client, found self: {client}")
+                    # del client
+                    logging.info(f"deleted self from clients")
 
             if self.game_wrapper:
                 self.game_wrapper.present_players -= 1
@@ -252,13 +255,21 @@ class PongConsumer(AsyncWebsocketConsumer):
             # Envoyer le message de fin au client restant
             data = self.generate_gameover_data()
             await self.send_gameover_to_remaining_client(data)
+            self.close()
+            await game_manager.remove_game(self.game_id)
 
         except Exception as e:
             logging.error(f"Error in disconnect: {str(e)}")
             logging.error(f"Full error details: {e.__class__.__name__}")
 
     async def send_gameover_to_remaining_client(self, data):
-        remaining_client = list(self.clients[self.group_name].values())[0]
+        logging.info(f"Sending gameover event to remaining client")
+        if self.mode == "PVP_keyboard":
+            return
+        for client in self.clients[self.group_name]:
+            if client != self:
+                remaining_client = client
+                break
         await remaining_client.send(json.dumps(data))
 
     def generate_headers(self, token):
