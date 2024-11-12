@@ -68,15 +68,15 @@ class Game:
         self.last_frame_time = 0
         self.state = self.getGameState()
 
-        self.speed_multiplier = 2
+        self.speed_multiplier = 3.5
         self.ball.max_speed *= self.speed_multiplier
-        self.paddle1.vel *= self.speed_multiplier
-        self.paddle2.vel *= self.speed_multiplier
+        # self.paddle1.vel *= self.speed_multiplier
+        # self.paddle2.vel *= self.speed_multiplier
 
         self.p1_successive_inputs = []
         self.p2_successive_inputs = []
 
-        self.frame_rate = 30
+        self.frame_rate = 60
 
 
     def init_display(self):
@@ -264,7 +264,7 @@ class Game:
 
                 self.handle_inputs()
                 ball.move()
-                # ball.friction()
+                ball.friction()
                 self.handle_collisions_on_paddle()
                 self.handle_collisions_on_border()
                 self.handle_scores()

@@ -13,11 +13,11 @@ class Paddle:
         self.height = height
         self.win_width = win_width
         self.win_height = win_height
-        self.vel = win_height / 333
+        self.vel = round(win_height / 333)
         self.lastTouch = 0
         self.canMove = True
         self.score = 0
-        # print(f"width: {width}, height: {height}")
+        # logging.info(f"paddle width: {width}, height: {height}, vel: {self.vel}, win_height: {win_height}")
         # exit(0)
 
     def reset_position(self):
@@ -37,7 +37,9 @@ class Paddle:
     def draw(self, win):
         pygame.draw.rect(win, white, (self.x, self.y, self.width, self.height))
 
-    def move(self, height, up=True):
+    async def move(self, height, up=True):
+
+        # logging.info(f"paddle move: height: {height}")
         temp = self.y
         if up:
             temp -= self.vel

@@ -50,7 +50,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if self.group_name not in self.clients:
             self.clients[self.group_name] = []
         self.clients[self.group_name].append(self)
-        logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
+        # logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
 
         await self.accept()
 
@@ -305,7 +305,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             # self.logger.info(f"Received event: {event}")
             if event["sender"] == "front":
                 await self.handle_front_input(event)
-            if event["sender"] == "AI":
+            elif event["sender"] == "AI":
                 await self.handle_ai_input(event)
                 self.game_wrapper.waiting_for_ai.set()
         except Exception as e:
@@ -323,15 +323,16 @@ class PongConsumer(AsyncWebsocketConsumer):
             if event["direction"] == "up":
                 for _ in range(5):
                     if self.side == "p1":
-                        self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
+                        await self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
                     else:
-                        self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
-            if event["direction"] == "down":
+                        await self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
+            elif event["direction"] == "down":
                 for _ in range(5):
                     if self.side == "p1":
-                        self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
+                        await self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
                     else:
-                        self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
+                        await self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
+            # logging.info(f"consumer, after move: {self.game_wrapper.game.paddle2.y}\n\n")
 
 
     async def send_ai_setup_instructions(self):
@@ -354,23 +355,23 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper.ai_is_initialized.set()
         await asyncio.sleep(0.00000001)
 
-    def handle_player1_input(self, event):
+    async def handle_player1_input(self, event):
         if event["event"] == "player1Up":
             for _ in range(5):
-                self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
+                await self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=True)
 
         if event["event"] == "player1Down":
             for _ in range(5):
-                self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
+                await self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
 
-    def handle_player2_input(self, event):
+    async def handle_player2_input(self, event):
         if event["event"] == "player2Up":
             for _ in range(5):
-                self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
+                await self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=True)
 
         if event["event"] == "player2Down":
             for _ in range(5):
-                self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
+                await self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
 
 
     async def handle_front_input(self, event):
@@ -407,11 +408,11 @@ class PongConsumer(AsyncWebsocketConsumer):
                     self.game_wrapper.game.pause = not self.game_wrapper.game.pause
 
             if self.side == "p1" or self.mode == "PVP_keyboard":
-                self.handle_player1_input(event)
+                await self.handle_player1_input(event)
 
 
             if self.side == "p2" or self.mode == "PVP_keyboard":
-                self.handle_player2_input(event)
+                await self.handle_player2_input(event)
 
         elif event["type"] == "keyUp":
             if event["event"] == "c":
