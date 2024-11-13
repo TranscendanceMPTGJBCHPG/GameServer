@@ -5,9 +5,6 @@ import random
 from .paddle import Paddle
 import logging
 
-white = (255, 255, 255)
-black = (0, 0, 0)
-
 class Ball:
     
     def __init__(self, x, y, radius, win_width, win_height):
