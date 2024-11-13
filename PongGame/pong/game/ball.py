@@ -17,6 +17,8 @@ class Ball:
         self.max_speed = self.win_width * self.win_height / 2500000
         self.radius = radius
         self.x_vel = self.max_speed / 3.5
+        if random.choice((1, 2)) == 1:
+            self.x_vel = -self.x_vel
         self.y_vel = 0
         self.frictionTimestamp = time.time()
 
