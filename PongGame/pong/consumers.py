@@ -54,8 +54,6 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         await self.accept()
 
-        # self.game_wrapper = GameWrapper.get_game()
-
         await self._initialize_game_mode()
         logging.info(f"number of connected players: {self.game_wrapper.present_players}")
 
@@ -326,9 +324,9 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def handle_ai_input(self, event):
         self.client = ClientType.AI
         if event["type"] == "greetings":
-            await self.send_ai_setup_instructions()
-        if event["type"] == "setup":
             self.game_wrapper.ai_is_initialized.set()
+        # if event["type"] == "setup":
+        #     self.game_wrapper.ai_is_initialized.set()
         if event["type"] == "move":
             # logging.info(f"AI move event: {event}\n\n")
             if event["direction"] == "up":
@@ -346,25 +344,25 @@ class PongConsumer(AsyncWebsocketConsumer):
             # logging.info(f"consumer, after move: {self.game_wrapper.game.paddle2.y}\n\n")
 
 
-    async def send_ai_setup_instructions(self):
-        # self.logger.info(f"Sending AI setup instructions")
-        ai_data = {
-            "type": "setup",
-            "side": "left",
-            "width": self.game_wrapper.game.width,
-            "height": self.game_wrapper.game.height,
-            "paddle_width": self.game_wrapper.game.paddle2.width,
-            "paddle_height": self.game_wrapper.game.paddle2.height,
-            "loading": self.game_wrapper.game.LOADING,
-        }
-        if self.game_wrapper.game.RUNNING_AI is False:
-            ai_data["difficulty"] = 0
-        else:
-            ai_data["difficulty"] = self.game_wrapper.game.DIFFICULTY
-        # self.logger.info(f"Sending AI setup instructions: {ai_data}")
-        await self.send(json.dumps(ai_data))
-        self.game_wrapper.ai_is_initialized.set()
-        await asyncio.sleep(0.00000001)
+    # async def send_ai_setup_instructions(self):
+    #     # self.logger.info(f"Sending AI setup instructions")
+    #     ai_data = {
+    #         "type": "setup",
+    #         "side": "left",
+    #         "width": self.game_wrapper.game.width,
+    #         "height": self.game_wrapper.game.height,
+    #         "paddle_width": self.game_wrapper.game.paddle2.width,
+    #         "paddle_height": self.game_wrapper.game.paddle2.height,
+    #         "loading": self.game_wrapper.game.LOADING,
+    #     }
+    #     if self.game_wrapper.game.RUNNING_AI is False:
+    #         ai_data["difficulty"] = 0
+    #     else:
+    #         ai_data["difficulty"] = self.game_wrapper.game.DIFFICULTY
+    #     # self.logger.info(f"Sending AI setup instructions: {ai_data}")
+    #     await self.send(json.dumps(ai_data))
+    #     self.game_wrapper.ai_is_initialized.set()
+    #     await asyncio.sleep(0.00000001)
 
     async def handle_player1_input(self, event):
         if event["event"] == "player1Up":
@@ -392,8 +390,8 @@ class PongConsumer(AsyncWebsocketConsumer):
             await self.game_wrapper.game.resume_on_goal()
             self.game_wrapper.has_resumed.set()
             # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
-        elif self.game_wrapper.game.display is True:
-            return
+        # elif self.game_wrapper.game.display is True:
+        #     return
         # self.logger.info(f"Handling front input: {event}")
         if event["type"] == "greetings":
             print("greetingsssssss")
@@ -426,11 +424,11 @@ class PongConsumer(AsyncWebsocketConsumer):
                 await self.handle_player2_input(event)
 
         elif event["type"] == "keyUp":
-            if event["event"] == "c":
-                if self.game_wrapper.game.display is False:
-                    self.game_wrapper.game.init_display()
-                else:
-                    self.game_wrapper.game.deactivate_CLI()
+            # if event["event"] == "c":
+            #     if self.game_wrapper.game.display is False:
+            #         self.game_wrapper.game.init_display()
+            #     else:
+            #         self.game_wrapper.game.deactivate_CLI()
             if event["event"] == 1:
                 self.game_wrapper.game.p1_successive_inputs.clear()
             else:

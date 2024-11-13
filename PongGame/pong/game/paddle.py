@@ -1,8 +1,4 @@
-import pygame
 import logging
-
-white = (255, 255, 255)
-black = (0, 0, 0)
 
 class Paddle:
     
@@ -17,8 +13,7 @@ class Paddle:
         self.lastTouch = 0
         self.canMove = True
         self.score = 0
-        # logging.info(f"paddle width: {width}, height: {height}, vel: {self.vel}, win_height: {win_height}")
-        # exit(0)
+
 
     def reset_position(self):
         up, down = False, False
@@ -32,14 +27,10 @@ class Paddle:
         else:
             while self.y + self.height / 2 > self.win_height / 2 - 10:
                 self.move(self.win_height, up=True)
-    
 
-    def draw(self, win):
-        pygame.draw.rect(win, white, (self.x, self.y, self.width, self.height))
 
     async def move(self, height, up=True):
 
-        # logging.info(f"paddle move: height: {height}")
         temp = self.y
         if up:
             temp -= self.vel

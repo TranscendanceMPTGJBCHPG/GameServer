@@ -1,5 +1,4 @@
 import math
-import pygame
 import time
 import copy
 import random
@@ -11,28 +10,18 @@ black = (0, 0, 0)
 
 class Ball:
     
-    def __init__(self, x, y, radius, win_width, win_height, display):
+    def __init__(self, x, y, radius, win_width, win_height):
         self.lastTouch = 0
         self.touchedWall = None
         self.x = x
         self.y = y
         self.win_width = win_width
         self.win_height = win_height
-        self.display = display
-        # if self.display is True:
-        #     self.max_speed = self.win_width * self.win_height // 350000
-        # else:
-        # self.max_speed = self.win_width * self.win_height // 1000000
         self.max_speed = self.win_width * self.win_height / 2500000
         self.radius = radius
         self.x_vel = self.max_speed / 3.5
         self.y_vel = 0
         self.frictionTimestamp = time.time()
-        # self.x = win_width - 100
-
-
-    def draw(self, win):
-        pygame.draw.circle(win, white, (self.x, self.y), self.radius)
 
 
     def move(self):
@@ -40,7 +29,7 @@ class Ball:
         self.y += self.y_vel
 
 
-    def reset(self, x, display):
+    def reset(self, x):
         self.x = self.win_width // 2
         self.y = self.win_height // 2
         if x > 0:
@@ -52,35 +41,9 @@ class Ball:
             else:
                 goalAngle = random.uniform(150, 180)
         angle_rad = math.radians(goalAngle)
-        # if display is True:
-        #     self.max_speed = self.win_width * self.win_height // 350000
-        # else:
-        #     self.max_speed = self.win_width * self.win_height // 1000000
-        #     # self.max_speed = self.win_width * self.win_height // 350000
         speed = self.max_speed / 3.5
         self.x_vel = speed * math.cos(angle_rad)
         self.y_vel = speed * math.sin(angle_rad)
-
-    def update_speed_on_CLI(self, display):
-
-        current_speed = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
-        logging.info(f"display: {display}")
-        logging.info(f"current_speed: {current_speed}")
-        proportion = current_speed / self.max_speed
-        logging.info(f"proportion: {proportion}")
-
-        if display is True:
-            self.max_speed = self.win_width * self.win_height // 350000
-        else:
-            self.max_speed = self.win_width * self.win_height // 1000000
-            #update speed but keep the proportion compared to previous max_speed
-
-
-            self.x_vel = self.x_vel / math.sqrt(self.x_vel ** 2 + self.y_vel ** 2) * self.max_speed * proportion
-            self.y_vel = self.y_vel / math.sqrt(self.x_vel ** 2 + self.y_vel ** 2) * self.max_speed * proportion
-
-        new_speed = math.sqrt(self.x_vel ** 2 + self.y_vel ** 2)
-        logging.info(f"new_speed: {new_speed}")
 
 
     # matrix
@@ -276,8 +239,6 @@ class Ball:
         res["lastTouch"] = self.lastTouch
         res["touchedWall"] = self.touchedWall
         res["rounded_angle"] = round((math.atan2(self.y_vel, self.x_vel)), 2)
-        # logging.info(f"rad by ball: {math.atan2(self.y_vel, self.x_vel)}")
-        # logging.info(f"rounded_angle by game: {res['rounded_angle']}")
         res["rounded_angle"] = round(math.atan2(self.y_vel, self.x_vel) * 2) / 2
         res["next_collision"] = self.calculateNextCollisionPosition(game.paddle2)
         self.touchedWall = None
