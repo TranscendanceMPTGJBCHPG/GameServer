@@ -88,13 +88,25 @@ def tournament_maker(request):
     logging.info(f"Request body: {request.body}")
 
     try:
-        if request.method == 'GET':
+        if not request.body:
+            return JsonResponse({'error': 'Empty request body'}, status=400)
+        
+        try:
             data = json.loads(request.body.decode('utf-8'))
-            uid = data.get('uid')
-            loser_id = data.get('loser_id')
+        except json.JSONDecodeError as e:
+            logging.error(f"JSON decode error: {e}")
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
 
-            if not uid or not loser_id:
-                return JsonResponse({'error': 'UID and loser_id are required'}, status=400)
+        if data.get('type') is None:
+            return JsonResponse({'error': 'Type field is required'}, status=400)
+
+        elif data.get('type') == 'continue':
+            uid = data.get('uid')
+            if not uid:
+                return JsonResponse({'error': 'UID is required'}, status=400)
+            loser_id = data.get('loser_id')
+            if not loser_id:
+                return JsonResponse({'error': 'loser_id is required'}, status=400)
 
             tournament = next((t for t in tournaments_list if t.get_uid() == uid), None)
             if not tournament:
@@ -111,16 +123,7 @@ def tournament_maker(request):
                     return JsonResponse({'winner_id': winner_id})
             return JsonResponse({'next_match': next_match, 'uid': uid})
 
-        elif request.method == 'POST':
-            if not request.body:
-                return JsonResponse({'error': 'Empty request body'}, status=400)
-
-            try:
-                data = json.loads(request.body.decode('utf-8'))
-            except json.JSONDecodeError as e:
-                logging.error(f"JSON decode error: {e}")
-                return JsonResponse({'error': 'Invalid JSON format'}, status=400)
-
+        elif data.get('type') == 'start':
             logging.info(f"POST Data: {data}")
             players_data = data.get('players', [])
 
