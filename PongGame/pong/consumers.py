@@ -44,19 +44,20 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def verify_token(self):
         headers = dict(self.scope.get('headers', []))
-        logging.info(f"headers: {headers}")
+        # logging.info(f"headers: {headers}")
         auth_header = headers.get(b'authorization', b'').decode()
-        logging.info(f"auth header: {auth_header}")
+        # logging.info(f"auth header: {auth_header}")
 
-        if auth_header == os.getenv('AI_SERVICE_TOKEN') or auth_header == os.getenv('CLI_SERVICE_TOKEN'):
-            self.error_on_connect = Errors.WRONG_TOKEN.value
-            # return True
+        if auth_header == os.getenv('AI_SERVICE_TOKEN') or auth_header == os.getenv('CLI_SERVICE_TOKEN') or auth_header == os.getenv('UNKNOWN_USER_SERVICE_TOKEN'):
+            # self.error_on_connect = Errors.WRONG_TOKEN.value
+            return True
         token = auth_header.split('Bearer ')[-1]
         self.error_on_connect = Errors.WRONG_TOKEN.value
 
 
     async def connect(self):
 
+        await self._setup_csrf()
         await self.verify_game_uid()
         await self.verify_token()
 
@@ -88,7 +89,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def verify_game_uid(self):
         self.game_id = self.scope['url_route']['kwargs']['uid']
-        logging.info(f"in verify game_uid: uid: {self.game_id}")
+        # logging.info(f"in verify game_uid: uid: {self.game_id}")
         if self.game_id is None:
             self.error_on_connect = Errors.WRONG_UID.value
             self.close()
@@ -96,7 +97,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         async with aiohttp.ClientSession() as session:
                 verify_url = f"https://nginx:7777/game/verify/{self.game_id}/"
                 headers = await self.generate_headers(self.scope['session'].get('csrf_token'))
-                logging.info(f"in verify game_uid: headers: {headers}")
+                # logging.info(f"in verify game_uid: headers: {headers}")
 
                 try:
                     async with session.get(
@@ -104,14 +105,16 @@ class PongConsumer(AsyncWebsocketConsumer):
                             ssl=False,
                             headers=headers
                     ) as response:
+                        # logging.info(f"response: {response}")
                         response_text = await response.text()
+                        # logging.info(f"response.text: {response_text}")
                         if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
                             logging.error(f"verify failed: {response.status}")
                             logging.error(f"Response: {response_text}")
                             self.close()
                             return False
                         else:
-                            logging.info(f"verify successful for game {self.game_id}")
+                            # logging.info(f"verify successful for game {self.game_id}")
                             return True
                 except Exception as e:
                     logging.error(f"verify request error: {str(e)}")
@@ -273,7 +276,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         async with aiohttp.ClientSession() as session:
             # Cleanup request
             cleanup_url = f"{base_url}/game/cleanup/{self.game_id}/"
-            headers = self.generate_headers(self.scope['session'].get('csrf_token'))
+            headers = await self.generate_headers(self.scope['session'].get('csrf_token'))
 
             try:
                 async with session.delete(
@@ -301,6 +304,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         await remaining_client.send(json.dumps(data))
 
     async def generate_headers(self, token):
+        if not token:
+            token = await self._setup_csrf()
         headers = {
             'Content-Type': 'application/json',
             'X-CSRFToken': token,
