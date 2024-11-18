@@ -8,6 +8,8 @@ from .utils import get_new_csrf_string_async
 from enum import Enum
 from .game.game_manager import game_manager
 
+import os
+
 class PlayerType(Enum):
     HUMAN = "Human"
     AI = "AI"
@@ -21,6 +23,12 @@ class ClientType(Enum):
     AI = 2
     FRONT = 1
 
+
+class Errors(Enum):
+    WRONG_UID = 1
+    WRONG_TOKEN = 2
+
+
 class PongConsumer(AsyncWebsocketConsumer):
     logger = logging.getLogger(__name__)
     game_wrapper = None
@@ -29,21 +37,30 @@ class PongConsumer(AsyncWebsocketConsumer):
     has_resumed = False
     mode = None
     adversary = None
+    error_on_connect = 0
 
 
     clients = {}
 
-    async def connect(self):
-        self.game_id = self.scope['url_route']['kwargs']['uid']
-        await self._setup_csrf()
+    async def verify_token(self):
+        headers = dict(self.scope.get('headers', []))
+        logging.info(f"headers: {headers}")
+        auth_header = headers.get(b'authorization', b'').decode()
+        logging.info(f"auth header: {auth_header}")
 
-        if await self.verify_game_uid() is False:
-            logging.info(f"Invalid game ID: {self.game_id}")
-            await self.close()
-            return        
+        if auth_header == os.getenv('AI_SERVICE_TOKEN') or auth_header == os.getenv('CLI_SERVICE_TOKEN'):
+            self.error_on_connect = Errors.WRONG_TOKEN.value
+            # return True
+        token = auth_header.split('Bearer ')[-1]
+        self.error_on_connect = Errors.WRONG_TOKEN.value
+
+
+    async def connect(self):
+
+        await self.verify_game_uid()
+        await self.verify_token()
 
         self.game_wrapper = await game_manager.create_or_get_game(self.game_id)
-
 
         self.group_name = f"pong_{self.game_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
@@ -70,9 +87,16 @@ class PongConsumer(AsyncWebsocketConsumer):
                 self.logger.error(f"Error generating CSRF token: {e}")
 
     async def verify_game_uid(self):
+        self.game_id = self.scope['url_route']['kwargs']['uid']
+        logging.info(f"in verify game_uid: uid: {self.game_id}")
+        if self.game_id is None:
+            self.error_on_connect = Errors.WRONG_UID.value
+            self.close()
+            return
         async with aiohttp.ClientSession() as session:
                 verify_url = f"https://nginx:7777/game/verify/{self.game_id}/"
-                headers = self.generate_headers(self.scope['session'].get('csrf_token'))
+                headers = await self.generate_headers(self.scope['session'].get('csrf_token'))
+                logging.info(f"in verify game_uid: headers: {headers}")
 
                 try:
                     async with session.get(
@@ -81,15 +105,17 @@ class PongConsumer(AsyncWebsocketConsumer):
                             headers=headers
                     ) as response:
                         response_text = await response.text()
-                        if response.status not in [200, 404]:  # On accepte 404 si le jeu est déjà nettoyé
+                        if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
                             logging.error(f"verify failed: {response.status}")
                             logging.error(f"Response: {response_text}")
+                            self.close()
                             return False
                         else:
                             logging.info(f"verify successful for game {self.game_id}")
                             return True
                 except Exception as e:
                     logging.error(f"verify request error: {str(e)}")
+                    self.close()
                     return False
 
 
@@ -212,53 +238,57 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 #******************************DISCONNECT********************************
 
+
+    async def handle_connect_error(self, error_code):
+        pass
+
     async def disconnect(self, close_code):
         try:
-            await self.channel_layer.group_discard("pong", self.channel_name)
-            self.close()
-            logging.info(f"in disconnect, after close")
-            for client in self.clients[self.group_name]:
-                if client == self:
-                    logging.info(f"ietrate through client, found self: {client}")
-                    # del client
-                    logging.info(f"deleted self from clients")
+            logging.info(f"on disconnect, error: {self.error_on_connect}")
+            if self.error_on_connect != 0:
+                await self.handle_connect_error(self.error_on_connect)
+            else:
+                await self.channel_layer.group_discard("pong", self.channel_name)
+                if self.game_wrapper:
+                    self.game_wrapper.present_players -= 1
+                    self.game_wrapper.game.pause = True
+                    self.game_wrapper.game_over.set()
 
-            if self.game_wrapper:
-                self.game_wrapper.present_players -= 1
-                self.game_wrapper.game.pause = True
-                self.game_wrapper.game_over.set()
+            if self.error_on_connect != 0:
+                await self.send_cleanup_request()
 
-            base_url = f"https://nginx:7777"
-
-            async with aiohttp.ClientSession() as session:
-                # Cleanup request
-                cleanup_url = f"{base_url}/game/cleanup/{self.game_id}/"
-                headers = self.generate_headers(self.scope['session'].get('csrf_token'))
-
-                try:
-                    async with session.delete(
-                            cleanup_url,
-                            ssl=False,
-                            headers=headers
-                    ) as response:
-                        response_text = await response.text()
-                        if response.status not in [200, 404]:  # On accepte 404 si le jeu est déjà nettoyé
-                            logging.error(f"Cleanup failed: {response.status}")
-                            logging.error(f"Response: {response_text}")
-                        else:
-                            logging.info(f"Cleanup successful for game {self.game_id}")
-                except Exception as e:
-                    logging.error(f"Cleanup request error: {str(e)}")
-
-            # Envoyer le message de fin au client restant
             data = self.generate_gameover_data()
             await self.send_gameover_to_remaining_client(data)
-            self.close()
             await game_manager.remove_game(self.game_id)
 
         except Exception as e:
             logging.error(f"Error in disconnect: {str(e)}")
             logging.error(f"Full error details: {e.__class__.__name__}")
+
+    async def send_cleanup_request(self):
+
+        base_url = f"https://nginx:7777"
+        if self.game_id is None:
+            self.game_id = self.scop
+        async with aiohttp.ClientSession() as session:
+            # Cleanup request
+            cleanup_url = f"{base_url}/game/cleanup/{self.game_id}/"
+            headers = self.generate_headers(self.scope['session'].get('csrf_token'))
+
+            try:
+                async with session.delete(
+                        cleanup_url,
+                        ssl=False,
+                        headers=headers
+                ) as response:
+                    response_text = await response.text()
+                    if response.status not in [200, 404]:  # On accepte 404 si le jeu est déjà nettoyé
+                        logging.error(f"Cleanup failed: {response.status}")
+                        logging.error(f"Response: {response_text}")
+                    else:
+                        logging.info(f"Cleanup successful for game {self.game_id}")
+            except Exception as e:
+                logging.error(f"Cleanup request error: {str(e)}")
 
     async def send_gameover_to_remaining_client(self, data):
         logging.info(f"Sending gameover event to remaining client")
@@ -270,10 +300,11 @@ class PongConsumer(AsyncWebsocketConsumer):
                 break
         await remaining_client.send(json.dumps(data))
 
-    def generate_headers(self, token):
+    async def generate_headers(self, token):
         headers = {
             'Content-Type': 'application/json',
-            'X-CSRFToken': token
+            'X-CSRFToken': token,
+            "Authorization": f"{os.getenv('GAME_SERVICE_TOKEN')}"
         }
         return headers
 
