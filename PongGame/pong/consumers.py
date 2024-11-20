@@ -8,6 +8,9 @@ from .utils import get_new_csrf_string_async
 from enum import Enum
 from .game.game_manager import game_manager
 
+from urllib.parse import parse_qs
+import jwt
+
 import os
 
 class PlayerType(Enum):
@@ -38,28 +41,83 @@ class PongConsumer(AsyncWebsocketConsumer):
     mode = None
     adversary = None
     error_on_connect = 0
+    client = None
 
 
     clients = {}
 
     async def verify_token(self):
-        headers = dict(self.scope.get('headers', []))
-        # logging.info(f"headers: {headers}")
-        auth_header = headers.get(b'authorization', b'').decode()
-        # logging.info(f"auth header: {auth_header}")
+        """
+        Vérifie le token d'authentification dans les sous-protocoles WebSocket.
+        Supporte les tokens de service et les JWT.
+        """
+        try:
+            # Récupérer le token depuis les sous-protocoles
+            protocols = self.scope.get('subprotocols', [])
+            logging.info(f"Received protocols: {protocols}")
 
-        if auth_header == os.getenv('AI_SERVICE_TOKEN') or auth_header == os.getenv('CLI_SERVICE_TOKEN') or auth_header == os.getenv('UNKNOWN_USER_SERVICE_TOKEN'):
-            # self.error_on_connect = Errors.WRONG_TOKEN.value
+            if not protocols:
+                logging.error("No subprotocols received")
+                self.error_on_connect = Errors.WRONG_TOKEN.value
+                return False
+
+            # Extraire le token du protocole (format: "token_<actual_token>")
+            token = protocols[0].replace('token_', '')
+            # logging.info(f"Token extracted: {token}")
+
+            # Vérifier les tokens de service
+            service_tokens = [
+                os.getenv('AI_SERVICE_TOKEN', '').replace('Bearer', '').strip(),
+                os.getenv('CLI_SERVICE_TOKEN', '').replace('Bearer', '').strip(),
+                os.getenv('UNKNOWN_USER_SERVICE_TOKEN', '').replace('Bearer', '').strip()
+            ]
+
+            if token in service_tokens:
+                # logging.info("Service token validated successfully")
+                return True
+
+            # Vérifier et décoder le JWT
+            payload = jwt.decode(
+                token,
+                os.getenv('JWT_SECRET_KEY'),
+                algorithms=['HS256']
+            )
+
+            # logging.info(f"JWT verified successfully for user: {payload.get('username')}")
+            self.user = payload.get('username')
             return True
-        token = auth_header.split('Bearer ')[-1]
-        self.error_on_connect = Errors.WRONG_TOKEN.value
+
+        except jwt.ExpiredSignatureError:
+            logging.error("Token has expired")
+            self.error_on_connect = Errors.WRONG_TOKEN.value
+            return False
+
+        except jwt.InvalidTokenError as e:
+            logging.error(f"Invalid token: {e}")
+            self.error_on_connect = Errors.WRONG_TOKEN.value
+            return False
+
+        except Exception as e:
+            logging.error(f"Unexpected error during token verification: {str(e)}")
+            self.error_on_connect = Errors.WRONG_TOKEN.value
+            return False
 
 
     async def connect(self):
 
         await self._setup_csrf()
-        await self.verify_game_uid()
-        await self.verify_token()
+        if not await self.verify_game_uid():
+            logging.info("verify game uid failed")
+            await self.close(4002)
+            return
+        else:
+            logging.info("verify uid ok")
+        if not await self.verify_token():
+            logging.info(f"verify token is false")
+            await self.close(4001)
+            return
+        else:
+            logging.info("verify token ok")
 
         self.game_wrapper = await game_manager.create_or_get_game(self.game_id)
 
@@ -70,7 +128,10 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.clients[self.group_name].append(self)
         # logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
 
-        await self.accept()
+        # await self.accept()
+
+        subprotocol = self.scope.get('subprotocols', [''])[0]
+        await self.accept(subprotocol=subprotocol)
 
         await self._initialize_game_mode()
         logging.info(f"number of connected players: {self.game_wrapper.present_players}")
@@ -92,8 +153,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         # logging.info(f"in verify game_uid: uid: {self.game_id}")
         if self.game_id is None:
             self.error_on_connect = Errors.WRONG_UID.value
-            self.close()
-            return
+            return False
         async with aiohttp.ClientSession() as session:
                 verify_url = f"https://nginx:7777/game/verify/{self.game_id}/"
                 headers = await self.generate_headers(self.scope['session'].get('csrf_token'))
@@ -111,14 +171,12 @@ class PongConsumer(AsyncWebsocketConsumer):
                         if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
                             logging.error(f"verify failed: {response.status}")
                             logging.error(f"Response: {response_text}")
-                            self.close()
                             return False
                         else:
                             # logging.info(f"verify successful for game {self.game_id}")
                             return True
                 except Exception as e:
                     logging.error(f"verify request error: {str(e)}")
-                    self.close()
                     return False
 
 
@@ -257,8 +315,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                     self.game_wrapper.game.pause = True
                     self.game_wrapper.game_over.set()
 
-            if self.error_on_connect != 0:
-                await self.send_cleanup_request()
+            await self.send_cleanup_request()
 
             data = self.generate_gameover_data()
             await self.send_gameover_to_remaining_client(data)
@@ -297,11 +354,13 @@ class PongConsumer(AsyncWebsocketConsumer):
         logging.info(f"Sending gameover event to remaining client")
         if self.mode == "PVP_keyboard":
             return
+        remaining_client = None
         for client in self.clients[self.group_name]:
             if client != self:
                 remaining_client = client
                 break
-        await remaining_client.send(json.dumps(data))
+        if remaining_client is not None:
+            await remaining_client.send(json.dumps(data))
 
     async def generate_headers(self, token):
         if not token:
