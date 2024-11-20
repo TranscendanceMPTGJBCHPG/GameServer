@@ -138,14 +138,23 @@ CHANNEL_LAYERS_OPTIONS = {
     "websocket_timeout": 30,  # Augmente le timeout à 30 secondes
 }
 
+# CORS_ALLOWED_ORIGINS = [
+#     "https://localhost:5173",
+#     "http://nginx:7777",
+#     "http://ai_client"
+#     "http://localhost:7777",
+#     "http://127.0.0.1:7777",
+#     "http://server"
+# ]
+
+##########################
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://nginx:81",
-    "http://ai_client"
-    "http://localhost:81",
-    "http://127.0.0.1:81",
-    "http://server"
+    "https://localhost:5173",
+    "http://localhost:7777",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+##############################
 
 LOGGING = {
        'version': 1,

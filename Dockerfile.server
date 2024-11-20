@@ -14,16 +14,7 @@ WORKDIR /app
 COPY GameServer/requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
-RUN apt-get update && apt-get install -y \
-    libx11-dev \
-    libxext-dev \
-    libsdl2-dev \
-    libsdl2-image-dev \
-    libsdl2-mixer-dev \
-    libsdl2-ttf-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir -p /tmp/runtime-docker && chmod 0700 /tmp/runtime-docker
+RUN mkdir -p /etc/nginx/ssl
 
 # Copy the application code
 COPY ./GameServer /app/
@@ -37,5 +28,7 @@ WORKDIR /app/PongGame
 
 
 # Command to start the Daphne server
-CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "PongGame.asgi:application"]
+CMD ["daphne", \
+     "-e", "ssl:8000:privateKey=/etc/nginx/ssl/nginx.key:certKey=/etc/nginx/ssl/nginx.crt", \
+     "PongGame.asgi:application"]
 
