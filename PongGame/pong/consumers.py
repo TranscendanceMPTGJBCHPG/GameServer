@@ -10,6 +10,7 @@ from .game.game_manager import game_manager
 
 from urllib.parse import parse_qs
 import jwt
+import base64
 
 import os
 
@@ -46,59 +47,90 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     clients = {}
 
+    def decode_jwt_unsafe(self, token):
+        """Décode le JWT en base64 sans vérification de signature"""
+        try:
+            header_b64, payload_b64, _ = token.split('.')
+            padding = '=' * (-len(payload_b64) % 4)
+            payload_b64_padded = payload_b64 + padding
+            payload_json = base64.urlsafe_b64decode(payload_b64_padded)
+            return json.loads(payload_json)
+        except Exception as e:
+            logging.error(f"Erreur décodage base64: {str(e)}")
+            return None
+
     async def verify_token(self):
         """
         Vérifie le token d'authentification dans les sous-protocoles WebSocket.
         Supporte les tokens de service et les JWT.
         """
         try:
-            # Récupérer le token depuis les sous-protocoles
             protocols = self.scope.get('subprotocols', [])
-            logging.info(f"Received protocols: {protocols}")
+            logging.info(f"Protocoles reçus: {protocols}")
 
             if not protocols:
-                logging.error("No subprotocols received")
+                logging.error("Aucun sous-protocole reçu")
                 self.error_on_connect = Errors.WRONG_TOKEN.value
                 return False
 
-            # Extraire le token du protocole (format: "token_<actual_token>")
+            # Extraire le token
             token = protocols[0].replace('token_', '')
-            # logging.info(f"Token extracted: {token}")
+            logging.info(f"Token extrait: {token[:10]}...")  # Log début du token
 
-            # Vérifier les tokens de service
+            # Vérification des tokens de service
             service_tokens = [
                 os.getenv('AI_SERVICE_TOKEN', '').replace('Bearer', '').strip(),
                 os.getenv('CLI_SERVICE_TOKEN', '').replace('Bearer', '').strip(),
                 os.getenv('UNKNOWN_USER_SERVICE_TOKEN', '').replace('Bearer', '').strip()
             ]
 
+            # Vérifier les tokens de service d'abord
             if token in service_tokens:
-                # logging.info("Service token validated successfully")
+                logging.info("Token de service validé")
                 return True
 
-            # Vérifier et décoder le JWT
-            payload = jwt.decode(
+            # Pour les JWT, vérifier avec les deux méthodes
+            # 1. Décodage non sécurisé
+            unsafe_payload = self.decode_jwt_unsafe(token)
+            if not unsafe_payload:
+                logging.error("Échec du décodage base64")
+                self.error_on_connect = Errors.WRONG_TOKEN.value
+                return False
+
+            logging.info(f"Payload décodé (non sécurisé): {unsafe_payload}")
+
+            # 2. Décodage sécurisé
+            secret_key = os.getenv('JWT_SECRET_KEY')
+            if not secret_key:
+                logging.error("JWT_SECRET_KEY non définie")
+                self.error_on_connect = Errors.WRONG_TOKEN.value
+                return False
+
+            secure_payload = jwt.decode(
                 token,
-                os.getenv('JWT_SECRET_KEY'),
+                secret_key,
                 algorithms=['HS256']
             )
+            logging.info(f"Payload décodé (sécurisé): {secure_payload}")
 
-            # logging.info(f"JWT verified successfully for user: {payload.get('username')}")
-            self.user = payload.get('username')
+            # 3. Vérifier la correspondance
+            if unsafe_payload != secure_payload:
+                logging.error("Les payloads ne correspondent pas")
+                self.error_on_connect = Errors.WRONG_TOKEN.value
+                return False
+
+            # Token validé, sauvegarder l'utilisateur
+            self.user = secure_payload.get('username')
+            logging.info(f"JWT validé pour l'utilisateur: {self.user}")
             return True
 
-        except jwt.ExpiredSignatureError:
-            logging.error("Token has expired")
-            self.error_on_connect = Errors.WRONG_TOKEN.value
-            return False
-
         except jwt.InvalidTokenError as e:
-            logging.error(f"Invalid token: {e}")
+            logging.error(f"Token JWT invalide: {str(e)}")
             self.error_on_connect = Errors.WRONG_TOKEN.value
             return False
 
         except Exception as e:
-            logging.error(f"Unexpected error during token verification: {str(e)}")
+            logging.error(f"Erreur inattendue lors de la vérification: {str(e)}")
             self.error_on_connect = Errors.WRONG_TOKEN.value
             return False
 
