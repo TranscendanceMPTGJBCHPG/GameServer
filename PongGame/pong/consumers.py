@@ -11,6 +11,7 @@ from .game.game_manager import game_manager
 from urllib.parse import parse_qs
 import jwt
 import base64
+import time
 
 import os
 
@@ -170,6 +171,53 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         if self.is_main is True:
             asyncio.ensure_future(self.generate_states())
+
+        else:
+            asyncio.ensure_future(self.wait_for_second_player())
+
+        
+
+
+
+    async def wait_for_second_player(self):
+       try:
+           
+        #    await self.send(json.dumps({
+        #        "type": "info",
+        #        "message": "waiting"
+        #    }))
+
+           # Utiliser asyncio.sleep pour ne pas bloquer
+           timestamp = time.time()
+           timeout = 10  # 10 secondes
+           if self.mode == GameMode.PVP_LAN.value:
+               timeout = 30
+
+           while time.time() - timestamp < timeout:
+               if self.game_wrapper.all_players_connected.is_set():
+                   logging.info("Second player connected successfully")
+                   return True
+
+               await asyncio.sleep(0.1)  # Sleep asynchrone important
+
+           # Timeout atteint
+           logging.error("Timeout waiting for second player")
+           await self.send(json.dumps({
+               "type": "error",
+               "message": "Second player failed to connect",
+               "game_mode": self.mode
+           }))
+           await self.close(code=4003)  # Code spécifique pour timeout
+           return False
+
+       except Exception as e:
+           logging.error(f"Error in wait_for_second_player: {e}")
+           await self.close(code=4000)
+           return False
+
+
+
+
 
     async def _setup_csrf(self):
         if 'csrf_token' not in self.scope['session']:
