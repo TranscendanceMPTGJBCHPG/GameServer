@@ -203,7 +203,7 @@ class PongConsumer(AsyncWebsocketConsumer):
            # Timeout atteint
            logging.error("Timeout waiting for second player")
            await self.send(json.dumps({
-               "type": "error",
+               "type": "timeout",
                "message": "Second player failed to connect",
                "game_mode": self.mode
            }))
@@ -318,9 +318,9 @@ class PongConsumer(AsyncWebsocketConsumer):
     def _setup_second_lan_player(self):
         self.side = "p2"
         self.is_main = True
+        self.game_wrapper.player_2.is_connected = True
         self.game_wrapper.all_players_connected.set()
         self.game_wrapper.player_2.type = PlayerType.HUMAN.value
-        self.game_wrapper.player_2.is_connected = True
 
     def _setup_lan_common(self):
         self.game_wrapper.ai_is_initialized.set()
@@ -487,7 +487,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         try:
             event = json.loads(text_data)
             # self.logger.info(f"Received event: {event}")
-            if event["sender"] == "front":
+            if event["sender"] == "front" or event["sender"] == "cli":
                 await self.handle_front_input(event)
             elif event["sender"] == "AI":
                 await self.handle_ai_input(event)
@@ -516,28 +516,6 @@ class PongConsumer(AsyncWebsocketConsumer):
                         await self.game_wrapper.game.paddle1.move(self.game_wrapper.game.height, up=False)
                     else:
                         await self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
-            # logging.info(f"consumer, after move: {self.game_wrapper.game.paddle2.y}\n\n")
-
-
-    # async def send_ai_setup_instructions(self):
-    #     # self.logger.info(f"Sending AI setup instructions")
-    #     ai_data = {
-    #         "type": "setup",
-    #         "side": "left",
-    #         "width": self.game_wrapper.game.width,
-    #         "height": self.game_wrapper.game.height,
-    #         "paddle_width": self.game_wrapper.game.paddle2.width,
-    #         "paddle_height": self.game_wrapper.game.paddle2.height,
-    #         "loading": self.game_wrapper.game.LOADING,
-    #     }
-    #     if self.game_wrapper.game.RUNNING_AI is False:
-    #         ai_data["difficulty"] = 0
-    #     else:
-    #         ai_data["difficulty"] = self.game_wrapper.game.DIFFICULTY
-    #     # self.logger.info(f"Sending AI setup instructions: {ai_data}")
-    #     await self.send(json.dumps(ai_data))
-    #     self.game_wrapper.ai_is_initialized.set()
-    #     await asyncio.sleep(0.00000001)
 
     async def handle_player1_input(self, event):
         if event["event"] == "player1Up":
@@ -561,17 +539,14 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def handle_front_input(self, event):
         self.client = ClientType.FRONT
         if event["type"] == "resumeOnGoal":
-            # logging.info(f"resume on goal event: {event}")
             await self.game_wrapper.game.resume_on_goal()
             self.game_wrapper.has_resumed.set()
-            # logging.info(f"etat du jeu: pause={self.game_wrapper.game.pause}, score p2={self.game_wrapper.game.paddle2.score}")
-        # elif self.game_wrapper.game.display is True:
-        #     return
-        # self.logger.info(f"Handling front input: {event}")
         if event["type"] == "greetings":
-            print("greetingsssssss")
+            # print("greetingsssssss")
             return
+        
         elif event["type"] == "start":
+            logging.info(f"got start from {event["sender"]}")
             if self.mode == "PVE":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready = True
@@ -582,32 +557,21 @@ class PongConsumer(AsyncWebsocketConsumer):
             elif self.mode == "PVP_keyboard":
                 self.game_wrapper.start_event.set()
             elif self.mode == "PVP_LAN":
-                if self.is_main is True:
+                if self.side == "p1":
+                    self.game_wrapper.player_1.is_ready = True
+                elif self.side == "p2":
+                    self.game_wrapper.player_2.is_ready = True
+                if self.game_wrapper.player_1.is_ready == True and self.game_wrapper.player_2.is_ready == True:
                     self.game_wrapper.start_event.set()
-        elif event["type"] == "keyDown":
-            # logging.info(f"key down event: {event}")
 
+        elif event["type"] == "keyDown":
             if event["event"] == "pause":
                 if self.mode == "PVE" or "PVP_keyboard":
                     self.game_wrapper.game.pause = not self.game_wrapper.game.pause
-
             if self.side == "p1" or self.mode == "PVP_keyboard":
                 await self.handle_player1_input(event)
-
-
             if self.side == "p2" or self.mode == "PVP_keyboard":
                 await self.handle_player2_input(event)
-
-        elif event["type"] == "keyUp":
-            # if event["event"] == "c":
-            #     if self.game_wrapper.game.display is False:
-            #         self.game_wrapper.game.init_display()
-            #     else:
-            #         self.game_wrapper.game.deactivate_CLI()
-            if event["event"] == 1:
-                self.game_wrapper.game.p1_successive_inputs.clear()
-            else:
-                self.game_wrapper.game.p2_successive_inputs.clear()
 
 
     async def generate_states(self):
