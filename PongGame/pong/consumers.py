@@ -44,6 +44,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     adversary = None
     error_on_connect = 0
     client = None
+    sleeping = False
 
 
     clients = {}
@@ -530,7 +531,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             return
         
         elif event["type"] == "start":
-#             logging.info(f"got start from {event["sender"]}")
+            # logging.info(f"got start from {event["sender"]}")
             if self.mode == "PVE":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready = True
@@ -548,7 +549,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                 if self.game_wrapper.player_1.is_ready == True and self.game_wrapper.player_2.is_ready == True:
                     self.game_wrapper.start_event.set()
 
-        elif event["type"] == "keyDown":
+        elif event["type"] == "keyDown" and self.sleeping is False:
+            # logging.info("got keydown from front")
             if event["event"] == "pause":
                 if self.mode == "PVE" or "PVP_keyboard":
                     self.game_wrapper.game.pause = not self.game_wrapper.game.pause
@@ -559,13 +561,15 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def generate_states(self):
-        self.logger.info("in generate states")
+        # self.logger.info("in generate states")
         await self.game_wrapper.ai_is_initialized.wait()
-        self.logger.info("in generate states, ai is initialized")
+        # self.logger.info("in generate states, ai is initialized")
         await self.game_wrapper.start_event.wait()
-        self.logger.info("state gen set")
+        # self.logger.info("state gen set")
         x = 0
-        await asyncio.sleep(2)
+        self.sleeping = True
+        asyncio.sleep(2)
+        self.sleeping = False
         async for state in self.game_wrapper.game.rungame():
             state_dict = json.loads(state)
             state_dict["game_mode"] = self.mode
