@@ -29,7 +29,7 @@ class Game:
         self.gameOver = False
 
         # game related variables
-        self.scoreLimit = 1
+        self.scoreLimit = 2
         self.run = True
         self.pause = False
         self.goal1 = False

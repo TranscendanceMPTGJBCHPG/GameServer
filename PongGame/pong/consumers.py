@@ -466,12 +466,37 @@ class PongConsumer(AsyncWebsocketConsumer):
         return winner
 #******************************DISCONNECT********************************
 
+    async def parse_received_event(self, event):
+        # logging.info(f"Received event: {event}")
+        if "type" not in event:
+            return False
+        if event["type"] == "greetings":
+            if event["sender"] not in ["front", "cli", "AI"] or len(event) != 2:
+                return False
+
+        elif event["type"] == "start":
+            if event["sender"] not in ["front", "cli"] or event["data"] != "init" or len(event) != 3 :
+                return False
+
+        elif event["type"] == "keyDown":
+            if event["sender"] not in ["front", "cli"] or len(event) != 3 or event["event"] not in ["player1Up", "player1Down", "player2Up", "player2Down"]:
+                return False
+
+        elif event["type"] == "move":
+            if event["sender"] not in ["AI"] or len(event) != 3 or event["direction"] not in ["up", "down", "still"]:
+                return False
+
+        elif event["type"] == "resumeOnGoal":
+            if event["sender"] not in ["front", "cli"] or len(event) != 2:
+                return False
+        return True
 
     async def receive(self, text_data):
         # Traiter les messages reçus du client
         try:
             event = json.loads(text_data)
-            # self.logger.info(f"Received event: {event}")
+            if await self.parse_received_event(event) is False:
+                logging.error(f"Error in receive: {event}")
             if event["sender"] == "front" or event["sender"] == "cli":
                 await self.handle_front_input(event)
             elif event["sender"] == "AI":
@@ -524,8 +549,19 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def handle_front_input(self, event):
         self.client = ClientType.FRONT
         if event["type"] == "resumeOnGoal":
-            await self.game_wrapper.game.resume_on_goal()
-            self.game_wrapper.has_resumed.set()
+            if self.mode == "PVP_LAN":
+                if self.side == "p1":
+                    self.game_wrapper.player_1.is_ready_for_next_point = True
+                elif self.side == "p2":
+                    self.game_wrapper.player_2.is_ready_for_next_point = True
+                if self.game_wrapper.player_1.is_ready_for_next_point == True and self.game_wrapper.player_2.is_ready_for_next_point == True:
+                    self.game_wrapper.player_1.is_ready_for_next_point = False
+                    self.game_wrapper.player_2.is_ready_for_next_point = False
+                    await self.game_wrapper.game.resume_on_goal()
+                    self.game_wrapper.has_resumed.set()
+            else:
+                await self.game_wrapper.game.resume_on_goal()
+                self.game_wrapper.has_resumed.set()
         if event["type"] == "greetings":
             # print("greetingsssssss")
             return
