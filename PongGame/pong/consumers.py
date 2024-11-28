@@ -185,6 +185,10 @@ class PongConsumer(AsyncWebsocketConsumer):
 
            while time.time() - timestamp < timeout:
                if self.game_wrapper.all_players_connected.is_set():
+                #    await self.send(json.dumps({
+                #        "type": "opponent_connected",
+                #        "opponent_connected": True
+                #    }))
 #                    logging.info("Second player connected successfully")
                    return True
 
@@ -469,25 +473,39 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def parse_received_event(self, event):
         # logging.info(f"Received event: {event}")
         if "type" not in event:
+            logging.error("1")
             return False
         if event["type"] == "greetings":
             if event["sender"] not in ["front", "cli", "AI"] or len(event) != 2:
+                logging.error("2")
                 return False
 
         elif event["type"] == "start":
             if event["sender"] not in ["front", "cli"] or event["data"] != "init" or len(event) != 3 :
+                logging.error("3")
                 return False
 
         elif event["type"] == "keyDown":
-            if event["sender"] not in ["front", "cli"] or len(event) != 3 or event["event"] not in ["player1Up", "player1Down", "player2Up", "player2Down"]:
+            if event["sender"] not in ["front", "cli"]:
+                logging.error("4")
                 return False
+            if event["event"] not in ["player1Up", "player1Down", "player2Up", "player2Down"]:
+                return False
+            if event["sender"] == "front":
+                if len(event) != 5:
+                    return False
+            if event["sender"] == "cli":
+                if len(event) != 3:
+                    return False
 
         elif event["type"] == "move":
             if event["sender"] not in ["AI"] or len(event) != 3 or event["direction"] not in ["up", "down", "still"]:
+                logging.error("5")
                 return False
 
         elif event["type"] == "resumeOnGoal":
             if event["sender"] not in ["front", "cli"] or len(event) != 2:
+                logging.error("6")
                 return False
         return True
 
