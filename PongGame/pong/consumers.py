@@ -514,7 +514,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         try:
             event = json.loads(text_data)
             if await self.parse_received_event(event) is False:
-                logging.error(f"Error in receive: {event}")
+                self.close(4004)
+                return
             if event["sender"] == "front" or event["sender"] == "cli":
                 await self.handle_front_input(event)
             elif event["sender"] == "AI":
