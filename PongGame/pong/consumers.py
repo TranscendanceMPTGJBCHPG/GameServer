@@ -45,6 +45,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     error_on_connect = 0
     client = None
     sleeping = False
+    message_timestamp = 0
 
 
     clients = {}
@@ -189,7 +190,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 #        "type": "opponent_connected",
                 #        "opponent_connected": True
                 #    }))
-#                    logging.info("Second player connected successfully")
+                   logging.info("Second player connected successfully")
                    return True
 
                await asyncio.sleep(0.1)
@@ -471,7 +472,9 @@ class PongConsumer(AsyncWebsocketConsumer):
 #******************************DISCONNECT********************************
 
     async def parse_received_event(self, event):
-        # logging.info(f"Received event: {event}")
+        if event is None:
+            logging.error("0")
+            return False
         if "type" not in event:
             logging.error("1")
             return False
@@ -511,18 +514,25 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data):
         # Traiter les messages reçus du client
-        try:
-            event = json.loads(text_data)
-            if await self.parse_received_event(event) is False:
-                self.close(4004)
+        current_time = time.time()
+        if current_time - self.message_timestamp >= 1/80:
+            self.message_timestamp = time.time()
+            try:
+                event = json.loads(text_data)
+                if await self.parse_received_event(event) is False:
+                    await self.close(4004)
+                    return
+                if event["sender"] == "front" or event["sender"] == "cli":
+                    await self.handle_front_input(event)
+                elif event["sender"] == "AI":
+                    await self.handle_ai_input(event)
+                    self.game_wrapper.waiting_for_ai.set()
+            except Exception as e:
+                self.logger.info(f"Error in receive: {e}")
+                await self.close(4004)
                 return
-            if event["sender"] == "front" or event["sender"] == "cli":
-                await self.handle_front_input(event)
-            elif event["sender"] == "AI":
-                await self.handle_ai_input(event)
-                self.game_wrapper.waiting_for_ai.set()
-        except Exception as e:
-            self.logger.info(f"Error in receive: {e}")
+        else:
+            logging.info(f"SPAMMMMMMMMMMMMMMMMMMMMM")
 
 
     async def handle_ai_input(self, event):
