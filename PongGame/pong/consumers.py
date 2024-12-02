@@ -141,13 +141,13 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         await self._setup_csrf()
         if not await self.verify_game_uid():
-#             logging.info("verify game uid failed")
+            logging.info("verify game uid failed")
             await self.close(4002)
             return
         # else:
 #             logging.info("verify uid ok")
         if not await self.verify_token():
-#             logging.info(f"verify token is false")
+            logging.info(f"verify token is false")
             await self.close(4001)
             return
         # else:
@@ -236,9 +236,9 @@ class PongConsumer(AsyncWebsocketConsumer):
                             ssl=False,
                             headers=headers
                     ) as response:
-#                         # logging.info(f"response: {response}")
+                        logging.info(f"verify uid response: {response}")
                         response_text = await response.text()
-#                         # logging.info(f"response.text: {response_text}")
+                        logging.info(f"response.text: {response_text}")
                         if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
                             logging.error(f"verify failed: {response.status}")
                             logging.error(f"Response: {response_text}")
