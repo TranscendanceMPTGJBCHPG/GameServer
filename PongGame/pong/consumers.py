@@ -187,10 +187,10 @@ class PongConsumer(AsyncWebsocketConsumer):
 
            while time.time() - timestamp < timeout:
                if self.game_wrapper.all_players_connected.is_set():
-                #    await self.send(json.dumps({
-                #        "type": "opponent_connected",
-                #        "opponent_connected": True
-                #    }))
+                   await self.send(json.dumps({
+                       "type": "opponent_connected",
+                       "opponent_connected": True
+                   }))
                    logging.info("Second player connected successfully")
                    return
 
