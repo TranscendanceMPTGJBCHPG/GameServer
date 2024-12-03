@@ -183,18 +183,23 @@ class PongConsumer(AsyncWebsocketConsumer):
                if self.mode == GameMode.PVP_LAN.value:
                    timeout = 3
                 #    timeout = 30
-    
+
                while time.time() - timestamp < timeout:
                    if self.game_wrapper.all_players_connected.is_set():
                        await self.send(json.dumps({
                            "type": "opponent_connected",
                            "opponent_connected": True
                        }))
+                       await self.send(json.dumps({
+                           "type": "names",
+                           "p1": self.game_wrapper.player_1.name,
+                           "p2": self.game_wrapper.player_2.name
+                           }))
                        logging.info("Second player connected successfully")
                        return
-    
+
                    await asyncio.sleep(0.1)
-    
+
                # Timeout atteint
                logging.error("Timeout waiting for second player")
                await self.send(json.dumps({
@@ -205,7 +210,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                await self.disconnect(close_code=4003)
                await self.close(code=4003)
                return
-    
+
            except Exception as e:
                logging.error(f"Error in wait_for_second_player: {e}")
                await self.disconnect(close_code=4003)
@@ -356,10 +361,12 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         if ai_is_player_one is True:
             self.side = "p1"
+            self.game_wrapper.player_1.name = "AI"
             self.game_wrapper.player_1.is_connected = True
             self.game_wrapper.player_1.is_ready = True
         else:
             self.side = "p2"
+            self.game_wrapper.player_2.name = "AI"
             self.game_wrapper.player_2.is_connected = True
             self.game_wrapper.player_2.is_ready = True
 
@@ -478,7 +485,8 @@ class PongConsumer(AsyncWebsocketConsumer):
             logging.error("1")
             return False
         if event["type"] == "greetings":
-            if event["sender"] not in ["front", "cli", "AI"] or len(event) != 2:
+            if event["sender"] not in ["front", "cli", "AI"] or len(event) < 2 or len(event) > 3:
+                # check if name is valid
                 logging.error("2")
                 return False
 
@@ -566,6 +574,13 @@ class PongConsumer(AsyncWebsocketConsumer):
             for _ in range(5):
                 await self.game_wrapper.game.paddle2.move(self.game_wrapper.game.height, up=False)
 
+    
+    async def get_player_name(self, event):
+        if self.side == "p1":
+            self.game_wrapper.player_1.name = event["name"]
+        else:
+            self.game_wrapper.player_2.name = event["name"]
+
 
     async def handle_front_input(self, event):
         self.client = ClientType.FRONT
@@ -584,7 +599,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 await self.game_wrapper.game.resume_on_goal()
                 self.game_wrapper.has_resumed.set()
         if event["type"] == "greetings":
-            # print("greetingsssssss")
+            await self.get_player_name(event)
             return
         
         elif event["type"] == "start":
@@ -630,7 +645,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         async for state in self.game_wrapper.game.rungame():
             state_dict = json.loads(state)
             state_dict["game_mode"] = self.mode
-#             # logging.info(f"state dict: {state_dict}")
+            logging.info(f"state dict: {state_dict}")
             if self.game_wrapper.has_resumed.is_set() is False:
                 state_dict["resumeOnGoal"] = False
             else:
@@ -703,4 +718,8 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         except Exception as e:
             logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
+
+
+
+{"type": "name", "name": "<name1>"}
 
