@@ -182,7 +182,8 @@ class PongConsumer(AsyncWebsocketConsumer):
            timestamp = time.time()
            timeout = 10  # 10 secondes
            if self.mode == GameMode.PVP_LAN.value:
-               timeout = 30
+               timeout = 3
+            #    timeout = 30
 
            while time.time() - timestamp < timeout:
                if self.game_wrapper.all_players_connected.is_set():
@@ -191,7 +192,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 #        "opponent_connected": True
                 #    }))
                    logging.info("Second player connected successfully")
-                   return True
+                   return
 
                await asyncio.sleep(0.1)
 
@@ -202,13 +203,15 @@ class PongConsumer(AsyncWebsocketConsumer):
                "message": "Second player failed to connect",
                "game_mode": self.mode
            }))
+           await self.disconnect(close_code=4003)
            await self.close(code=4003)
-           return False
+           return
 
        except Exception as e:
            logging.error(f"Error in wait_for_second_player: {e}")
-           await self.close(code=4000)
-           return False
+           await self.disconnect(close_code=4003)
+           await self.close(code=4003)
+           return
 
     async def _setup_csrf(self):
         if 'csrf_token' not in self.scope['session']:
