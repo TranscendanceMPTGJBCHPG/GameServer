@@ -243,9 +243,9 @@ class PongConsumer(AsyncWebsocketConsumer):
                             ssl=False,
                             headers=headers
                     ) as response:
-                        logging.info(f"verify uid response: {response}")
+                        # logging.info(f"verify uid response: {response}")
                         response_text = await response.text()
-                        logging.info(f"response.text: {response_text}")
+                        # logging.info(f"response.text: {response_text}")
                         if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
                             logging.error(f"verify failed: {response.status}")
                             logging.error(f"Response: {response_text}")
@@ -645,7 +645,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         async for state in self.game_wrapper.game.rungame():
             state_dict = json.loads(state)
             state_dict["game_mode"] = self.mode
-            logging.info(f"state dict: {state_dict}")
+            # logging.info(f"state dict: {state_dict}")
             if self.game_wrapper.has_resumed.is_set() is False:
                 state_dict["resumeOnGoal"] = False
             else:
@@ -666,7 +666,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                     await client.send(text_data=json.dumps(state_dict))
                     self.game_wrapper.waiting_for_ai.clear()
                     await asyncio.sleep(0.0000001)
-                if state_dict["gameover"] == "score":
+                if state_dict["gameover"] == "Score":
                     self.game_wrapper.game.quit()
                     self.game_wrapper.game_over.set()
                     await self.handle_gameover_score_limit()
