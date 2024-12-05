@@ -376,7 +376,8 @@ class PongConsumer(AsyncWebsocketConsumer):
             self.game_wrapper.player_1.is_ready = True
         else:
             self.side = "p2"
-            self.game_wrapper.player_2.name = "AI"
+            if self.game_wrapper.player_2.name == None:
+                self.game_wrapper.player_2.name = "AI"
             self.game_wrapper.player_2.is_connected = True
             self.game_wrapper.player_2.is_ready = True
 
@@ -588,10 +589,20 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     
     async def get_player_name(self, event):
-        if self.side == "p1":
-            self.game_wrapper.player_1.name = event["name"]
+        logging.info(f"got in get_player_name: {event}")
+        if "name" not in event:
+            logging.error("got no name")
+            return
+        names = event["name"]
+        logging.info(f"received names: {names}")
+        if len(names) != 2:
+            if self.side == "p1":
+                self.game_wrapper.player_1.name = event["name"][0]
+            else:
+                self.game_wrapper.player_2.name = event["name"][1]
         else:
-            self.game_wrapper.player_2.name = event["name"]
+            self.game_wrapper.player_1.name = event["name"][0]
+            self.game_wrapper.player_2.name = event["name"][1]
 
 
     async def handle_front_input(self, event):
