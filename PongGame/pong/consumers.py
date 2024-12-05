@@ -609,6 +609,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.client = ClientType.FRONT
         # logging.info(f"got in handle_front_input:")
         if event["type"] == "resumeOnGoal":
+            logging.info(f"got resumeOnGoal")
             if self.mode == "PVP_LAN":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready_for_next_point = True
