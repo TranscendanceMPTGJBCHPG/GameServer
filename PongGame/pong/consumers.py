@@ -165,7 +165,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if self.group_name not in self.clients:
             self.clients[self.group_name] = []
         self.clients[self.group_name].append(self)
-#         # logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
+        logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
 
 
         subprotocol = self.scope.get('subprotocols', [''])[0]
@@ -183,45 +183,46 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def wait_for_second_player(self):
-           try:
-               timestamp = time.time()
-               timeout = 10  # 10 secondes
-               if self.mode == GameMode.PVP_LAN.value:
-                   timeout = 3
+        try:
+            timestamp = time.time()
+            timeout = 10  # 10 secondes
+            if self.mode == GameMode.PVP_LAN.value:
+                timeout = 3
                 #    timeout = 30
 
-               while time.time() - timestamp < timeout:
-                   if self.game_wrapper.all_players_connected.is_set():
-                       await self.send(json.dumps({
+            while time.time() - timestamp < timeout:
+                if self.game_wrapper.all_players_connected.is_set():
+                    for client in self.clients[self.group_name]:
+                        await client.send(json.dumps({
                            "type": "opponent_connected",
                            "opponent_connected": True
-                       }))
-                       await self.send(json.dumps({
+                        }))
+                        await client.send(json.dumps({
                            "type": "names",
                            "p1": self.game_wrapper.player_1.name,
                            "p2": self.game_wrapper.player_2.name
                            }))
-                       logging.info("Second player connected successfully")
-                       return
-
-                   await asyncio.sleep(0.1)
+                        logging.info("sent names")
+                    logging.info("Second player connected successfully")
+                    return
+                await asyncio.sleep(0.1)
 
                # Timeout atteint
-               logging.error("Timeout waiting for second player")
-               await self.send(json.dumps({
-                   "type": "timeout",
-                   "message": "Second player failed to connect",
-                   "game_mode": self.mode
-               }))
-               await self.disconnect(close_code=4003)
-               await self.close(code=4003)
-               return
+            logging.error("Timeout waiting for second player")
+            await self.send(json.dumps({
+                "type": "timeout",
+                "message": "Second player failed to connect",
+                "game_mode": self.mode
+            }))
+            await self.disconnect(close_code=4003)
+            await self.close(code=4003)
+            return
 
-           except Exception as e:
-               logging.error(f"Error in wait_for_second_player: {e}")
-               await self.disconnect(close_code=4003)
-               await self.close(code=4003)
-               return
+        except Exception as e:
+            logging.error(f"Error in wait_for_second_player: {e}")
+            await self.disconnect(close_code=4003)
+            await self.close(code=4003)
+            return
 
               
     async def _setup_csrf(self):
@@ -326,6 +327,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.is_main = True
         self.game_wrapper.player_2.is_connected = True
         self.game_wrapper.all_players_connected.set()
+        logging.info("all players are connected")
         self.game_wrapper.player_2.type = PlayerType.HUMAN.value
 
     def _setup_lan_common(self):
@@ -383,6 +385,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         self.is_main = True
         self.game_wrapper.all_players_connected.set()
+        logging.info("all players are connected")
 
     #*********************PVE MODE INITIALIZATION END********************************
 
