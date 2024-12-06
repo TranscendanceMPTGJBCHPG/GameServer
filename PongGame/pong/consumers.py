@@ -452,6 +452,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 remaining_client = client
                 break
         if remaining_client is not None:
+            logging.info(f"Sending gameover event to remaining client, data: {data}")
             await remaining_client.send(json.dumps(data))
 
     async def generate_headers(self, token):
@@ -538,7 +539,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         # Traiter les messages reçus du client
         current_time = time.time()
-        if current_time - self.message_timestamp >= 1/80:
+        if current_time - self.message_timestamp >= 1/80 or text_data.startswith("{\"type\":\"gameover"):
             self.message_timestamp = time.time()
             try:
                 event = json.loads(text_data)
@@ -551,6 +552,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                 elif event["sender"] == "AI":
                     await self.handle_ai_input(event)
                     # self.game_wrapper.waiting_for_ai.set()
+                elif event["sender"] == "game":
+                    await self.handle_game_input(event)
             except Exception as e:
                 self.logger.info(f"Error in receive: {e}")
                 await self.disconnect(4004)
@@ -558,6 +561,14 @@ class PongConsumer(AsyncWebsocketConsumer):
                 return
         else:
             logging.info(f"SPAMMMMMMMMMMMMMMMMMMMMM")
+
+    
+    async def handle_game_input(self, event):
+        logging.info(f"got in game_input: {event}")
+        if event["type"] == "gameover":
+            await self.disconnect(4003)
+            await self.close(4003)
+            return
 
 
     async def handle_ai_input(self, event):
