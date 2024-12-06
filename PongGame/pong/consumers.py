@@ -188,7 +188,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             timeout = 10  # 10 secondes
             if self.mode == GameMode.PVP_LAN.value:
                 timeout = 3
-                #    timeout = 30
 
             while time.time() - timestamp < timeout:
                 if self.game_wrapper.all_players_connected.is_set():
@@ -761,19 +760,19 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def determine_winner(self, state_dict, winner, client):
 #         # logging.info(f"in determine winner")
-        if state_dict["game_mode"] != GameMode.PVP_KEYBOARD.value:
-            if winner == '1':
-                if client.side == "p1":
-                    state_dict["winner"] = "self"
-                else:
-                    state_dict["winner"] = "adversary"
-            else:
-                if client.side == "p2":
-                    state_dict["winner"] = "self"
-                else:
-                    state_dict["winner"] = "adversary"
-        else:
-            state_dict["winner"] = winner
+        # if state_dict["game_mode"] != GameMode.PVP_KEYBOARD.value:
+        #     if winner == '1':
+        #         if client.side == "p1":
+        #             state_dict["winner"] = "self"
+        #         else:
+        #             state_dict["winner"] = "adversary"
+        #     else:
+        #         if client.side == "p2":
+        #             state_dict["winner"] = "self"
+        #         else:
+        #             state_dict["winner"] = "adversary"
+        # else:
+        state_dict["winner"] = winner
 #         # logging.info(f"state dict return determine_winner: {state_dict}")
         return state_dict
 
