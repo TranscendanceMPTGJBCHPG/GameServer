@@ -19,6 +19,7 @@ class GameWrapper:
         self.all_players_connected = asyncio.Event()
         self.resume_on_goal = asyncio.Event()
         self.waiting_for_ai = asyncio.Event()
+        self.received_names = asyncio.Event()
         self.ai_partner = True
 
         self.has_resumed_count = 0
