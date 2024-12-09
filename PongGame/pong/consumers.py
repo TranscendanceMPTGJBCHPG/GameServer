@@ -387,7 +387,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.game_wrapper.all_players_connected.set()
         logging.info("all players are connected")
 
-    #*********************PVE MODE INITIALIZATION END********************************
+    #*********************PVE MODE INITIALIZATION sideEND********************************
 
 #*********************GAME MODE INITIALIZATION END********************************
 
@@ -576,6 +576,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["type"] == "greetings":
             self.game_wrapper.ai_is_initialized.set()
             self.game_wrapper.received_names.set()
+            self.game_wrapper.received_names.set()
         if event["type"] == "move":
 #             # logging.info(f"AI move event: {event}\n\n")
             if event["direction"] == "up":
@@ -607,8 +608,10 @@ class PongConsumer(AsyncWebsocketConsumer):
         logging.info(f"got in get_player_name: {event}")
         if "name" not in event:
             logging.error("got no name")
+            logging.info(f"present_players: {self.game_wrapper.present_players}, all_players_connected: {self.game_wrapper.all_players_connected}")
             if self.game_wrapper.present_players == 2:
                 self.game_wrapper.received_names.set()
+                logging.info("received names set, DIDNT RECEIVE ANY")
             return
         names = event["name"]
         logging.info(f"received names: {names}")
@@ -620,6 +623,14 @@ class PongConsumer(AsyncWebsocketConsumer):
         else:
             self.game_wrapper.player_1.name = event["name"][0]
             self.game_wrapper.player_2.name = event["name"][1]
+        await asyncio.sleep(1)
+        for client in self.clients[self.group_name]:
+            await client.send(json.dumps({
+                           "type": "names",
+                           "p1": self.game_wrapper.player_1.name,
+                           "p2": self.game_wrapper.player_2.name
+                           }))
+        self.game_wrapper.received_names.set()
         await asyncio.sleep(1)
         for client in self.clients[self.group_name]:
             await client.send(json.dumps({

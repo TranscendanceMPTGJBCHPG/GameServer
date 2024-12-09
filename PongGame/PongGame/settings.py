@@ -157,22 +157,51 @@ CORS_ALLOW_CREDENTIALS = True
 ##############################
 
 LOGGING = {
-       'version': 1,
-       'disable_existing_loggers': False,
-       'handlers': {
-           'console': {
-               'class': 'logging.StreamHandler',
-           },
-       },
-       'root': {
-           'handlers': ['console'],
-           'level': 'INFO',
-       },
-       'loggers': {
-           'django': {
-               'handlers': ['console'],
-               'level': 'INFO',
-               'propagate': False,
-           },
-       },
-   }
+    'version': 1,
+    'disable_existing_loggers': False,  # Changé à False
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+        'null': {
+            'class': 'logging.NullHandler',
+        },
+    },
+    'loggers': {
+        # Vos logs personnalisés iront à la console
+        '': {  # Logger racine
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        # Suppression des logs Django non désirés
+        'django.server': {
+            'handlers': ['null'],
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['null'],
+            'propagate': False,
+        },
+    }
+}
+
+# LOGGING = {
+#        'version': 1,
+#        'disable_existing_loggers': False,
+#        'handlers': {
+#            'console': {
+#                'class': 'logging.StreamHandler',
+#            },
+#        },
+#        'root': {
+#            'handlers': ['console'],
+#            'level': 'INFO',
+#        },
+#        'loggers': {
+#            'django': {
+#                'handlers': ['console'],
+#                'level': 'INFO',
+#                'propagate': False,
+#            },
+#        },
+#    }

@@ -33,23 +33,3 @@ class GameWrapper:
 
     def get_game(self):
         return self.game
-
-    # async def move_paddles():
-    #     logging.info("move paddles")
-    #     logging.info(self.player_1.action)
-    #     logging.info(self.player_2.action)
-    #     if self.player_1.action == 1:
-    #         for _ in range(5):
-    #             await self.game.paddle1.move(self.game.height, up=True)
-    #     if self.player_1.action == -1:
-    #         for _ in range(5):
-    #             await self.game.paddle1.move(self.game.height, up=False)
-
-    #     if self.player_2.action == 1:
-    #         for _ in range(5):
-    #             await self.game.paddle2.move(self.game.height, up=True)
-    #     if self.player_2.action == -1:
-    #         for _ in range(5):
-    #             await self.game.paddle2.move(self.game.height, up=False)
-
-    #     logging.info("paddles moved")
