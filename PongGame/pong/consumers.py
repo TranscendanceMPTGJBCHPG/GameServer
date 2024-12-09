@@ -575,6 +575,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.client = ClientType.AI
         if event["type"] == "greetings":
             self.game_wrapper.ai_is_initialized.set()
+            self.game_wrapper.received_names.set()
         if event["type"] == "move":
 #             # logging.info(f"AI move event: {event}\n\n")
             if event["direction"] == "up":
@@ -606,6 +607,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         logging.info(f"got in get_player_name: {event}")
         if "name" not in event:
             logging.error("got no name")
+            if self.game_wrapper.present_players == 2:
+                self.game_wrapper.received_names.set()
             return
         names = event["name"]
         logging.info(f"received names: {names}")
@@ -617,6 +620,14 @@ class PongConsumer(AsyncWebsocketConsumer):
         else:
             self.game_wrapper.player_1.name = event["name"][0]
             self.game_wrapper.player_2.name = event["name"][1]
+        await asyncio.sleep(1)
+        for client in self.clients[self.group_name]:
+            await client.send(json.dumps({
+                           "type": "names",
+                           "p1": self.game_wrapper.player_1.name,
+                           "p2": self.game_wrapper.player_2.name
+                           }))
+        self.game_wrapper.received_names.set()
 
 
     async def handle_front_input(self, event):
@@ -689,6 +700,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.logger.info("in generate states")
         await self.game_wrapper.ai_is_initialized.wait()
         self.logger.info("in generate states, ai is initialized")
+        await self.game_wrapper.received_names.wait()
+        self.logger.info("in generate states, names received")
         await self.game_wrapper.start_event.wait()
         self.logger.info("state gen set")
         x = 0
