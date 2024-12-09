@@ -372,7 +372,8 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         if ai_is_player_one is True:
             self.side = "p1"
-            self.game_wrapper.player_1.name = "AI"
+            if self.game_wrapper.player_1.name == None:
+                self.game_wrapper.player_1.name = "AI"
             self.game_wrapper.player_1.is_connected = True
             self.game_wrapper.player_1.is_ready = True
         else:
@@ -600,7 +601,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if event["player"] == "p2" and self.side == "p2":
             self.game_wrapper.player_2.action = event["value"][1]
 
-    
+
     async def get_player_name(self, event):
         logging.info(f"got in get_player_name: {event}")
         if "name" not in event:
