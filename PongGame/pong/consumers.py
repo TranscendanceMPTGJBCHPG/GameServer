@@ -83,8 +83,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             # Vérification des tokens de service
             service_tokens = [
                 os.getenv('AI_SERVICE_TOKEN', '').replace('Bearer', '').strip(),
-                os.getenv('CLI_SERVICE_TOKEN', '').replace('Bearer', '').strip(),
-                os.getenv('UNKNOWN_USER_SERVICE_TOKEN', '').replace('Bearer', '').strip()
+                os.getenv('CLI_SERVICE_TOKEN', '').replace('Bearer', '').strip()
             ]
 
             # Vérifier les tokens de service d'abord
