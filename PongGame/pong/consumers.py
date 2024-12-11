@@ -643,7 +643,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def handle_front_input(self, event):
         self.client = ClientType.FRONT
-        # logging.info(f"got in handle_front_input:")
+        logging.info(f"got in handle_front_input: {event}")
         if event["type"] == "resumeOnGoal":
             logging.info(f"got resumeOnGoal")
             if self.mode == "PVP_LAN":
@@ -684,8 +684,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                     self.game_wrapper.start_event.set()
 
         elif event["type"] == "keyDown" and self.sleeping is False:
-            # logging.info("got keydown from front")
-            # logging.info(f"mode: {self.mode}")
+            logging.info("got keydown from front")
+            logging.info(f"mode: {self.mode}")
             # logging.info(f"GameModePVP_KEYBOARD: {GameMode.PVP_KEYBOARD.value}")
             # if event["event"] == "pause":
             #     if self.mode == GameMode.PVE.value or self.mode == GameMode.PVP_KEYBOARD.value:
