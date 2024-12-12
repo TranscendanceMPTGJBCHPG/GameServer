@@ -254,9 +254,9 @@ class PongConsumer(AsyncWebsocketConsumer):
                             ssl=False,
                             headers=headers
                     ) as response:
-                        # logging.info(f"verify uid response: {response}")
+                        logging.info(f"verify uid response: {response}")
                         response_text = await response.text()
-                        # logging.info(f"response.text: {response_text}")
+                        logging.info(f"response.text: {response_text}")
                         if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
                             logging.error(f"verify failed: {response.status}")
                             logging.error(f"Response: {response_text}")
