@@ -47,6 +47,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     client = None
     sleeping = False
     message_timestamp = 0
+    jwt_token = None
 
 
     clients = {}
@@ -125,6 +126,10 @@ class PongConsumer(AsyncWebsocketConsumer):
             # Token validé, sauvegarder l'utilisateur
             self.user = secure_payload.get('username')
 #             logging.info(f"JWT validé pour l'utilisateur: {self.user}")
+
+            # Enregistrer le token pour les futures requêtes
+            self.jwt_token = token
+
             return True
 
         except jwt.InvalidTokenError as e:
@@ -408,8 +413,49 @@ class PongConsumer(AsyncWebsocketConsumer):
                         await game_manager.remove_game(self.game_id)
                     self.game_wrapper = None
 
+
+    async def send_user_stats(self):
+        try:
+            url = 'https://nginx:7777/auth/incrementusercounters/'
+            
+            # Préparation des données dans le format attendu par request.POST
+            form_data = aiohttp.FormData()
+            form_data.add_field('token', self.jwt_token)
+            form_data.add_field('goals', str(
+                self.game_wrapper.game.paddle1.score if self.side == "p1" else self.game_wrapper.game.paddle2.score
+            ))
+            form_data.add_field('winner', str(
+                (self.side == "p1" and self.get_winner() == "Player1") or 
+                (self.side == "p2" and self.get_winner() == "Player2")
+            ).lower())
+
+            headers = {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    url,
+                    data=form_data,
+                    headers=headers,
+                    ssl=False
+                ) as response:
+                    response_text = await response.text()
+                    if response.status == 200:
+                        response_data = json.loads(response_text)
+                        logging.info(f"Stats updated successfully: goals={response_data['goal_counter']}, wins={response_data['win_counter']}")
+                    else:
+                        logging.error(f"Stats update failed: {response.status}")
+                        logging.error(f"Response: {response_text}")
+
+        except Exception as e:
+            logging.error(f"Error sending stats: {str(e)}")
+
     async def disconnect(self, close_code):
         try:
+            if self.mode == "PVP_LAN":
+                await self.send_user_stats()
+
             # Log initial pour debug
             logging.info(f"Starting disconnect for instance {id(self)}")
             if hasattr(self, 'group_name'):
@@ -544,13 +590,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                 winner = "Human"
             else:
                 winner = "AI"
-        elif self.mode == "PVP_keyboard":
-            if self.game_wrapper.game.paddle1.score > self.game_wrapper.game.paddle2.score:
-                winner = "Player1"
-            else:
-                winner = "Player2"
         else:
-            if self.is_main is True:
+            if self.game_wrapper.game.paddle1.score > self.game_wrapper.game.paddle2.score:
                 winner = "Player1"
             else:
                 winner = "Player2"
