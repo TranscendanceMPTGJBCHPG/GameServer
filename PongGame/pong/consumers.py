@@ -32,6 +32,7 @@ class ClientType(Enum):
 class Errors(Enum):
     WRONG_UID = 1
     WRONG_TOKEN = 2
+    TIMEOUT = 3
 
 
 class PongConsumer(AsyncWebsocketConsumer):
@@ -164,7 +165,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if self.group_name not in self.clients:
             self.clients[self.group_name] = []
         self.clients[self.group_name].append(self)
-        logging.info(f"in connect, clients: {self.clients}\n\n size of clients[channel_name]: {len(self.clients[self.group_name])}")
+        logging.info(f"in connect, number of groups: {len(self.clients)}\nName of groups: {self.clients.keys()}\nsize of current group[channel_name]: {len(self.clients[self.group_name])}")
 
 
         subprotocol = self.scope.get('subprotocols', [''])[0]
@@ -186,8 +187,8 @@ class PongConsumer(AsyncWebsocketConsumer):
             timestamp = time.time()
             timeout = 10  # 10 secondes
             if self.mode == GameMode.PVP_LAN.value:
-                timeout = 3
-
+                timeout = 5
+    
             while time.time() - timestamp < timeout:
                 if self.game_wrapper.all_players_connected.is_set():
                     for client in self.clients[self.group_name]:
@@ -199,19 +200,22 @@ class PongConsumer(AsyncWebsocketConsumer):
                            "type": "names",
                            "p1": self.game_wrapper.player_1.name,
                            "p2": self.game_wrapper.player_2.name
-                           }))
+                        }))
                         logging.info("sent names")
                     logging.info("Second player connected successfully")
                     return
                 await asyncio.sleep(0.1)
-
-               # Timeout atteint
+    
+            # Timeout atteint
             logging.error("Timeout waiting for second player")
             await self.send(json.dumps({
                 "type": "timeout",
                 "message": "Second player failed to connect",
                 "game_mode": self.mode
             }))
+            
+            # On laisse le nettoyage à disconnect() en passant simplement l'erreur
+            self.error_on_connect = Errors.TIMEOUT.value
             await self.disconnect(close_code=4003)
             await self.close(code=4003)
             return
@@ -394,29 +398,84 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def handle_connect_error(self, error_code):
-        pass
+        if hasattr(self, 'game_wrapper') and self.game_wrapper:
+                self.game_wrapper.present_players = max(0, self.game_wrapper.present_players - 1)
+                self.game_wrapper.game.pause = True
+                self.game_wrapper.game_over.set()
+                
+                if self.game_wrapper.present_players <= 0:
+                    if hasattr(self, 'game_id'):
+                        await game_manager.remove_game(self.game_id)
+                    self.game_wrapper = None
 
     async def disconnect(self, close_code):
         try:
-#             logging.info(f"on disconnect, error: {self.error_on_connect}")
+            # Log initial pour debug
+            logging.info(f"Starting disconnect for instance {id(self)}")
+            if hasattr(self, 'group_name'):
+                logging.info(f"Group name: {self.group_name}")
+            logging.info(f"Available groups: {list(self.clients.keys())}")
+    
+            # Nettoyage toujours effectué, même avec une erreur
+            # Nettoyage du channel layer
+            if hasattr(self, 'group_name'):
+                try:
+                    await self.channel_layer.group_discard("pong", self.channel_name)
+                except Exception as e:
+                    logging.warning(f"Error discarding from channel layer: {str(e)}")
+            
+            # Nettoyage des clients
+            try:
+                if (hasattr(self, 'clients') and hasattr(self, 'group_name') 
+                    and isinstance(self.clients, dict)  # Vérifier que clients est un dict
+                    and self.group_name in self.clients):  # Vérifier que le groupe existe
+                    
+                    if self in self.clients[self.group_name]:
+                        self.clients[self.group_name].remove(self)
+                        logging.info(f"Removed client from group {self.group_name}")
+                    
+                    # Ne supprimer le groupe que s'il est vide
+                    if not self.clients[self.group_name]:
+                        del self.clients[self.group_name]
+                        logging.info(f"Deleted empty group {self.group_name}")
+                    
+                    logging.info(f"After cleanup - Number of groups: {len(self.clients)}")
+                    logging.info(f"Groups remaining: {list(self.clients.keys())}")
+            except Exception as e:
+                logging.warning(f"Error cleaning up clients: {str(e)}")
+    
+            # Gérer l'erreur spécifique si nécessaire
             if self.error_on_connect != 0:
                 await self.handle_connect_error(self.error_on_connect)
-            else:
-                await self.channel_layer.group_discard("pong", self.channel_name)
-                if self.game_wrapper:
-                    self.game_wrapper.present_players -= 1
+            
+            # Nettoyage du game_wrapper seulement s'il n'y a pas eu d'erreur de connexion
+            elif hasattr(self, 'game_wrapper') and self.game_wrapper:
+                try:
+                    self.game_wrapper.present_players = max(0, self.game_wrapper.present_players - 1)
                     self.game_wrapper.game.pause = True
                     self.game_wrapper.game_over.set()
-
-            await self.send_cleanup_request()
-
-            data = self.generate_gameover_data()
-            await self.send_gameover_to_remaining_client(data)
-            await game_manager.remove_game(self.game_id)
+                    
+                    if self.game_wrapper.present_players <= 0:
+                        if hasattr(self, 'game_id'):
+                            await game_manager.remove_game(self.game_id)
+                        self.game_wrapper = None
+                except Exception as e:
+                    logging.warning(f"Error cleaning up game wrapper: {str(e)}")
+        
+                # Cleanup request et gameover seulement si on a un game_id
+                if hasattr(self, 'game_id'):
+                    try:
+                        await self.send_cleanup_request()
+                        data = self.generate_gameover_data()
+                        await self.send_gameover_to_remaining_client(data)
+                    except Exception as e:
+                        logging.warning(f"Error in cleanup request or gameover: {str(e)}")
 
         except Exception as e:
             logging.error(f"Error in disconnect: {str(e)}")
             logging.error(f"Full error details: {e.__class__.__name__}")
+            logging.error(f"group_name: {getattr(self, 'group_name', 'Not set')}")
+            logging.error(f"Available groups: {list(getattr(self, 'clients', {}).keys())}")
 
     async def send_cleanup_request(self):
 
@@ -707,56 +766,71 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def generate_states(self):
-        self.logger.info("in generate states")
-        await self.game_wrapper.ai_is_initialized.wait()
-        self.logger.info("in generate states, ai is initialized")
-        await self.game_wrapper.received_names.wait()
-        self.logger.info("in generate states, names received")
-        await self.game_wrapper.start_event.wait()
-        self.logger.info("state gen set")
-        x = 0
-        self.sleeping = True
-        await asyncio.sleep(2)
-        self.sleeping = False
-        logging.info("starting game")
-        async for state in self.game_wrapper.game.rungame():
-            # logging.info(f"state: {state}")
-            state_dict = json.loads(state)
-            state_dict["game_mode"] = self.mode
-            # logging.info(f"state dict: {state_dict}")
-            if self.game_wrapper.has_resumed.is_set() is False:
-                state_dict["resumeOnGoal"] = False
-            else:
-                state_dict["resumeOnGoal"] = True
-                self.game_wrapper.has_resumed.clear()
-
-
-            try:
-                if state_dict['winner'] is not None:
-                    winner = state_dict['winner']
-                else:
-                    winner = None
-#                 # logging.info(f"self.clients[self.channel_name]: {self.clients[self.group_name]}")
-                for client in self.clients[self.group_name]:
-                    state_dict['side'] = client.side
-                    if winner is not None:
-                        state_dict = await self.determine_winner(state_dict, winner, client)
-                    await client.send(text_data=json.dumps(state_dict))
-                    # self.game_wrapper.waiting_for_ai.clear()
-                    await asyncio.sleep(0.0000001)
-                if state_dict["gameover"] == "Score":
-                    self.game_wrapper.game.quit()
-                    self.game_wrapper.game_over.set()
-                    await self.handle_gameover_score_limit()
+        try:
+            self.logger.info("in generate states")
+            await self.game_wrapper.ai_is_initialized.wait()
+            self.logger.info("in generate states, ai is initialized")
+            await self.game_wrapper.received_names.wait()
+            self.logger.info("in generate states, names received")
+            await self.game_wrapper.start_event.wait()
+            self.logger.info("state gen set")
+            x = 0
+            self.sleeping = True
+            await asyncio.sleep(2)
+            self.sleeping = False
+            logging.info("starting game")
+            
+            async for state in self.game_wrapper.game.rungame():
+                # Vérifier si game_wrapper existe encore
+                if not hasattr(self, 'game_wrapper') or self.game_wrapper is None:
+                    logging.info("Game wrapper no longer exists, stopping generate_states")
                     return
-                await self.move_paddles()
+                    
+                state_dict = json.loads(state)
+                state_dict["game_mode"] = self.mode
+                
+                if self.game_wrapper.has_resumed.is_set() is False:
+                    state_dict["resumeOnGoal"] = False
+                else:
+                    state_dict["resumeOnGoal"] = True
+                    self.game_wrapper.has_resumed.clear()
+    
+                try:
+                    if state_dict['winner'] is not None:
+                        winner = state_dict['winner']
+                    else:
+                        winner = None
+    
+                    # Vérifier à nouveau si le groupe existe encore
+                    if not hasattr(self, 'group_name') or self.group_name not in self.clients:
+                        logging.info("Group no longer exists, stopping generate_states")
+                        return
+    
+                    for client in self.clients[self.group_name]:
+                        state_dict['side'] = client.side
+                        if winner is not None:
+                            state_dict = await self.determine_winner(state_dict, winner, client)
+                        await client.send(text_data=json.dumps(state_dict))
+                        await asyncio.sleep(0.0000001)
+                        
+                    if state_dict["gameover"] == "Score":
+                        self.game_wrapper.game.quit()
+                        self.game_wrapper.game_over.set()
+                        await self.handle_gameover_score_limit()
+                        return
+                        
+                    await self.move_paddles()
+    
+                except Exception as e:
+                    logging.error(f"Error in generate_states loop: {str(e)}")
+                    return
+    
+                x += 1
+                await asyncio.sleep(0.00000001)
 
-            except Exception as e:
-#                 logging.info(f"an error happened, during send")
-                return
-            x += 1
-
-            await asyncio.sleep(0.00000001)
+        except Exception as e:
+            logging.error(f"Error in generate_states: {str(e)}")
+            return
 
     async def move_paddles(self):
         asyncio.create_task(self._move_paddle_1())
