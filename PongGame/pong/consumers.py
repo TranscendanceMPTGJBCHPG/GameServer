@@ -239,7 +239,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def verify_game_uid(self):
         self.game_id = self.scope['url_route']['kwargs']['uid']
-#         # logging.info(f"in verify game_uid: uid: {self.game_id}")
+        logging.info(f"in verify game_uid: uid: {self.game_id}")
         if self.game_id is None:
             self.error_on_connect = Errors.WRONG_UID.value
             return False
@@ -427,14 +427,13 @@ class PongConsumer(AsyncWebsocketConsumer):
             # Nettoyage des clients
             try:
                 if (hasattr(self, 'clients') and hasattr(self, 'group_name') 
-                    and isinstance(self.clients, dict)  # Vérifier que clients est un dict
-                    and self.group_name in self.clients):  # Vérifier que le groupe existe
+                    and isinstance(self.clients, dict)  
+                    and self.group_name in self.clients):
                     
                     if self in self.clients[self.group_name]:
                         self.clients[self.group_name].remove(self)
                         logging.info(f"Removed client from group {self.group_name}")
                     
-                    # Ne supprimer le groupe que s'il est vide
                     if not self.clients[self.group_name]:
                         del self.clients[self.group_name]
                         logging.info(f"Deleted empty group {self.group_name}")
@@ -443,6 +442,14 @@ class PongConsumer(AsyncWebsocketConsumer):
                     logging.info(f"Groups remaining: {list(self.clients.keys())}")
             except Exception as e:
                 logging.warning(f"Error cleaning up clients: {str(e)}")
+    
+            # Toujours envoyer la requête de cleanup, même en cas d'erreur
+            try:
+                logging.info(f"Sending cleanup request for game_id: {self.game_id}")
+                await self.send_cleanup_request()
+                logging.info(f"Sent cleanup for game_id: {self.game_id}")
+            except Exception as e:
+                logging.warning(f"Error in cleanup request: {str(e)}")
     
             # Gérer l'erreur spécifique si nécessaire
             if self.error_on_connect != 0:
@@ -461,15 +468,14 @@ class PongConsumer(AsyncWebsocketConsumer):
                         self.game_wrapper = None
                 except Exception as e:
                     logging.warning(f"Error cleaning up game wrapper: {str(e)}")
-        
-                # Cleanup request et gameover seulement si on a un game_id
+                
+                # Envoi du gameover seulement après le nettoyage normal du game
                 if hasattr(self, 'game_id'):
                     try:
-                        await self.send_cleanup_request()
                         data = self.generate_gameover_data()
                         await self.send_gameover_to_remaining_client(data)
                     except Exception as e:
-                        logging.warning(f"Error in cleanup request or gameover: {str(e)}")
+                        logging.warning(f"Error sending gameover: {str(e)}")
 
         except Exception as e:
             logging.error(f"Error in disconnect: {str(e)}")
@@ -481,7 +487,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         base_url = f"https://nginx:7777"
         if self.game_id is None:
-            self.game_id = self.scop
+            self.game_id = self.scope['url_route']['kwargs']['uid']
         async with aiohttp.ClientSession() as session:
             # Cleanup request
             cleanup_url = f"{base_url}/game/cleanup/{self.game_id}/"
@@ -597,7 +603,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     async def receive(self, text_data):
         # Traiter les messages reçus du client
         current_time = time.time()
-        if current_time - self.message_timestamp >= 1/80 or text_data.startswith("{\"type\":\"gameover"):
+        if current_time - self.message_timestamp >= 1/80 or not text_data.startswith("{\"type\":\"keyDown"):
             self.message_timestamp = time.time()
             try:
                 event = json.loads(text_data)
