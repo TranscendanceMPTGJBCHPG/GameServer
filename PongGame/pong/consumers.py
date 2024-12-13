@@ -428,6 +428,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 (self.side == "p1" and self.get_winner() == "Player1") or 
                 (self.side == "p2" and self.get_winner() == "Player2")
             ).lower())
+            form_data.add_field('game_service_token', os.getenv('GAME_SERVICE_TOKEN'))
 
             headers = {
                 'Content-Type': 'application/x-www-form-urlencoded',
