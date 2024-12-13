@@ -33,6 +33,7 @@ class Errors(Enum):
     WRONG_UID = 1
     WRONG_TOKEN = 2
     TIMEOUT = 3
+    SAME_JWT = 4
 
 
 class PongConsumer(AsyncWebsocketConsumer):
@@ -222,21 +223,21 @@ class PongConsumer(AsyncWebsocketConsumer):
     
             while time.time() - timestamp < timeout:
                 if self.game_wrapper.all_players_connected.is_set():
+                    if self.game_wrapper.player_1.name not in (None, 'guest') and self.game_wrapper.player_1.name == self.game_wrapper.player_2.name:
+                        for client in self.clients[self.group_name]:
+                            await client.send(json.dumps({
+                            "type": "same_jwt",
+                        }))
+                        self.error_on_connect = Errors.SAME_JWT.value
+                        await self.disconnect(close_code=4003)
+                        await self.close(code=4003)
+                        return
+                        
                     for client in self.clients[self.group_name]:
                         await client.send(json.dumps({
                            "type": "opponent_connected",
                            "opponent_connected": True
                         }))
-                        
-                        if self.game_wrapper.player_1.name not in (None, 'guest') and self.game_wrapper.player_1.name == self.game_wrapper.player_2.name:
-                            await client.send(json.dumps({
-                               "type": "same_jwt",
-                        }))
-                            self.error_on_connect = Errors.SAME_JWT.value
-                            await self.disconnect(close_code=4003)
-                            await self.close(code=4003)
-                            return
-                        
                         await client.send(json.dumps({
                            "type": "names",
                            "p1": self.game_wrapper.player_1.name,
