@@ -80,7 +80,8 @@ class PongConsumer(AsyncWebsocketConsumer):
 
             # Extraire le token
             token = protocols[0].replace('token_', '')
-#             logging.info(f"Token extrait: {token[:10]}...")  # Log début du token
+            logging.info(f"Token extrait: {token[:10]}...")  # Log début du token
+            self.jwt_token = token
 
             # Vérification des tokens de service
             service_tokens = [
@@ -128,7 +129,6 @@ class PongConsumer(AsyncWebsocketConsumer):
 #             logging.info(f"JWT validé pour l'utilisateur: {self.user}")
 
             # Enregistrer le token pour les futures requêtes
-            self.jwt_token = token
 
             return True
 
@@ -191,20 +191,26 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def get_name_from_jwt(self):
 
-        logging.info(f"get_name_from_jwt")
+        logging.info(f"get_name_from_jwt, self.jwt_token: {self.jwt_token}")
 
-        if self.jwt_token == os.getenv('AI_SERVICE_TOKEN'):
-            return
-        payload = jwt.decode(self.jwt_token, options={'verify_signature': False})
-        logging.info(f"payload: {payload}")
-        username = payload['username']
-        logging.info(f"username: {username}")
-        if username == 'guest':
-            return
-        if self.side == "p1":
-            self.game_wrapper.player_1.name = username
-        else:
-            self.game_wrapper.player_2.name = username
+        try:
+
+            if self.jwt_token == os.getenv('AI_SERVICE_TOKEN').replace('Bearer', '').strip():
+                logging.info("AI service token !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                return
+            payload = jwt.decode(self.jwt_token, options={'verify_signature': False})
+            logging.info(f"payload: {payload}")
+            username = payload['username']
+            logging.info(f"username: {username}")
+            if username == 'guest':
+                return
+            if self.side == "p1":
+                self.game_wrapper.player_1.name = username
+            else:
+                self.game_wrapper.player_2.name = username
+
+        except Exception as e:
+            logging.error(f"Error in get_name_from_jwt: {e}")
 
 
     async def wait_for_second_player(self):
@@ -892,7 +898,6 @@ class PongConsumer(AsyncWebsocketConsumer):
                         await asyncio.sleep(0.0000001)
                         
                     if state_dict["gameover"] == "Score":
-                        self.game_wrapper.game.quit()
                         self.game_wrapper.game_over.set()
                         await self.handle_gameover_score_limit()
                         return
