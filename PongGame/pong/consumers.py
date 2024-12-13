@@ -174,17 +174,37 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
         subprotocol = self.scope.get('subprotocols', [''])[0]
+        
         await self.accept(subprotocol=subprotocol)
 
         await self._initialize_game_mode()
         logging.info(f"Game mode: {self.mode}")
 #         logging.info(f"number of connected players: {self.game_wrapper.present_players}")
 
+        await self.get_name_from_jwt()
+
         if self.is_main is True:
             asyncio.ensure_future(self.generate_states())
 
         else:
             asyncio.ensure_future(self.wait_for_second_player())
+
+    async def get_name_from_jwt(self):
+
+        logging.info(f"get_name_from_jwt")
+
+        if self.jwt_token == os.getenv('AI_SERVICE_TOKEN'):
+            return
+        payload = jwt.decode(self.jwt_token, options={'verify_signature': False})
+        logging.info(f"payload: {payload}")
+        username = payload['username']
+        logging.info(f"username: {username}")
+        if username == 'guest':
+            return
+        if self.side == "p1":
+            self.game_wrapper.player_1.name = username
+        else:
+            self.game_wrapper.player_2.name = username
 
 
     async def wait_for_second_player(self):
@@ -201,6 +221,16 @@ class PongConsumer(AsyncWebsocketConsumer):
                            "type": "opponent_connected",
                            "opponent_connected": True
                         }))
+                        
+                        if self.game_wrapper.player_1.name not in (None, 'guest') and self.game_wrapper.player_1.name == self.game_wrapper.player_2.name:
+                            await client.send(json.dumps({
+                               "type": "same_jwt",
+                        }))
+                            self.error_on_connect = Errors.SAME_JWT.value
+                            await self.disconnect(close_code=4003)
+                            await self.close(code=4003)
+                            return
+                        
                         await client.send(json.dumps({
                            "type": "names",
                            "p1": self.game_wrapper.player_1.name,
