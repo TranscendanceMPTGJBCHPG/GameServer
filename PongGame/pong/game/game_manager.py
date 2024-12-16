@@ -14,12 +14,12 @@ class GameManager:
         async with self._lock:
             # logging.info(f"Creating or getting game with id: {game_id}")
             if game_id not in self.active_games:
-                logging.info(f"Game CREATED with id: {game_id}")
+                # logging.info(f"Game CREATED with id: {game_id}")
                 self.active_games[game_id] = GameWrapper(game_id)
-                logging.info(f"number of active games: {len(self.active_games)}")
+                # logging.info(f"number of active games: {len(self.active_games)}")
                 # logging.info(f"Game created with id: {game_id}")
-            else:
-                logging.info(f"Game RETRIEVED with id: {game_id}")
+            # else:
+                # logging.info(f"Game RETRIEVED with id: {game_id}")
             return self.active_games[game_id]
         
     async def remove_game(self, game_id: str):

@@ -81,7 +81,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
             # Extraire le token
             token = protocols[0].replace('token_', '')
-            logging.info(f"Token extrait: {token[:10]}...")  # Log début du token
+            # logging.info(f"Token extrait: {token[:10]}...")  # Log début du token
             self.jwt_token = token
 
             # Vérification des tokens de service
@@ -146,7 +146,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def connect(self):
 
-        logging.info(f"tentative de Connexion de {self.scope['user']}")
+        # logging.info(f"tentative de Connexion de {self.scope['user']}")
 
         await self._setup_csrf()
         if not await self.verify_game_uid():
@@ -157,7 +157,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         # else:
 #             logging.info("verify uid ok")
         if not await self.verify_token():
-            logging.info(f"verify token is false")
+            # logging.info(f"verify token is false")
             await self.disconnect(4001)
             await self.close(4001)
             return
@@ -171,7 +171,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         if self.group_name not in self.clients:
             self.clients[self.group_name] = []
         self.clients[self.group_name].append(self)
-        logging.info(f"in connect, number of groups: {len(self.clients)}\nName of groups: {self.clients.keys()}\nsize of current group[channel_name]: {len(self.clients[self.group_name])}")
+        # logging.info(f"in connect, number of groups: {len(self.clients)}\nName of groups: {self.clients.keys()}\nsize of current group[channel_name]: {len(self.clients[self.group_name])}")
 
 
         subprotocol = self.scope.get('subprotocols', [''])[0]
@@ -179,7 +179,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         await self.accept(subprotocol=subprotocol)
 
         await self._initialize_game_mode()
-        logging.info(f"Game mode: {self.mode}")
+        # logging.info(f"Game mode: {self.mode}")
 #         logging.info(f"number of connected players: {self.game_wrapper.present_players}")
 
         await self.get_name_from_jwt()
@@ -192,17 +192,17 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def get_name_from_jwt(self):
 
-        logging.info(f"get_name_from_jwt, self.jwt_token: {self.jwt_token}")
+        # logging.info(f"get_name_from_jwt, self.jwt_token: {self.jwt_token}")
 
         try:
 
             if self.jwt_token == os.getenv('AI_SERVICE_TOKEN').replace('Bearer', '').strip():
-                logging.info("AI service token !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+                # logging.info("AI service token !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
                 return
             payload = jwt.decode(self.jwt_token, options={'verify_signature': False})
-            logging.info(f"payload: {payload}")
+            # logging.info(f"payload: {payload}")
             username = payload['username']
-            logging.info(f"username: {username}")
+            # logging.info(f"username: {username}")
             if username == 'guest':
                 return
             if self.side == "p1":
@@ -243,13 +243,13 @@ class PongConsumer(AsyncWebsocketConsumer):
                            "p1": self.game_wrapper.player_1.name,
                            "p2": self.game_wrapper.player_2.name
                         }))
-                        logging.info("sent names")
-                    logging.info("Second player connected successfully")
+                        # logging.info("sent names")
+                    # logging.info("Second player connected successfully")
                     return
                 await asyncio.sleep(0.1)
     
             # Timeout atteint
-            logging.error("Timeout waiting for second player")
+            # logging.error("Timeout waiting for second player")
             await self.send(json.dumps({
                 "type": "timeout",
                 "message": "Second player failed to connect",
@@ -275,13 +275,13 @@ class PongConsumer(AsyncWebsocketConsumer):
                 csrf_token = await get_new_csrf_string_async()
                 self.scope['session']['csrf_token'] = csrf_token
                 await self.scope["session"].save()
-            except Exception as e:
-                self.logger.error(f"Error generating CSRF token: {e}")
+            except Exception:
+                pass
 
 
     async def verify_game_uid(self):
         self.game_id = self.scope['url_route']['kwargs']['uid']
-        logging.info(f"in verify game_uid: uid: {self.game_id}")
+        # logging.info(f"in verify game_uid: uid: {self.game_id}")
         if self.game_id is None:
             self.error_on_connect = Errors.WRONG_UID.value
             return False
@@ -296,12 +296,12 @@ class PongConsumer(AsyncWebsocketConsumer):
                             ssl=False,
                             headers=headers
                     ) as response:
-                        logging.info(f"verify uid response: {response}")
+                        # logging.info(f"verify uid response: {response}")
                         response_text = await response.text()
-                        logging.info(f"response.text: {response_text}")
+                        # logging.info(f"response.text: {response_text}")
                         if response.status not in [200]:  # On accepte 404 si le jeu est déjà nettoyé
-                            logging.error(f"verify failed: {response.status}")
-                            logging.error(f"Response: {response_text}")
+                            # logging.error(f"verify failed: {response.status}")
+                            # logging.error(f"Response: {response_text}")
                             return False
                         else:
 #                             # logging.info(f"verify successful for game {self.game_id}")
@@ -371,7 +371,7 @@ class PongConsumer(AsyncWebsocketConsumer):
         self.is_main = True
         self.game_wrapper.player_2.is_connected = True
         self.game_wrapper.all_players_connected.set()
-        logging.info("all players are connected")
+        # logging.info("all players are connected")
         self.game_wrapper.player_2.type = PlayerType.HUMAN.value
 
     def _setup_lan_common(self):
@@ -398,7 +398,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     def _handle_first_pve_connection(self, game_id):
         ai_is_player_one = game_id[-1] == '1'
-        logging.info(f"ai_is_player_one: {ai_is_player_one}")
+        # logging.info(f"ai_is_player_one: {ai_is_player_one}")
 
         if ai_is_player_one is True:
             self.side = "p2"
@@ -413,7 +413,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     def _handle_second_pve_connection(self, game_id):
         ai_is_player_one = game_id[-1] == '1'
-        logging.info(f"ai_is_player_one: {ai_is_player_one}")
+        # logging.info(f"ai_is_player_one: {ai_is_player_one}")
 
         if ai_is_player_one is True:
             self.side = "p1"
@@ -430,7 +430,7 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         self.is_main = True
         self.game_wrapper.all_players_connected.set()
-        logging.info("all players are connected")
+        # logging.info("all players are connected")
 
     #*********************PVE MODE INITIALIZATION sideEND********************************
 
@@ -481,7 +481,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                     response_text = await response.text()
                     if response.status == 200:
                         response_data = json.loads(response_text)
-                        logging.info(f"Stats updated successfully: goals={response_data['goal_counter']}, wins={response_data['win_counter']}")
+                        # logging.info(f"Stats updated successfully: goals={response_data['goal_counter']}, wins={response_data['win_counter']}")
                     else:
                         logging.error(f"Stats update failed: {response.status}")
                         logging.error(f"Response: {response_text}")
@@ -495,10 +495,10 @@ class PongConsumer(AsyncWebsocketConsumer):
                 await self.send_user_stats()
 
             # Log initial pour debug
-            logging.info(f"Starting disconnect for instance {id(self)}")
-            if hasattr(self, 'group_name'):
-                logging.info(f"Group name: {self.group_name}")
-            logging.info(f"Available groups: {list(self.clients.keys())}")
+            # logging.info(f"Starting disconnect for instance {id(self)}")
+            # if hasattr(self, 'group_name'):
+            #     logging.info(f"Group name: {self.group_name}")
+            # logging.info(f"Available groups: {list(self.clients.keys())}")
     
             # Nettoyage toujours effectué, même avec une erreur
             # Nettoyage du channel layer
@@ -516,22 +516,22 @@ class PongConsumer(AsyncWebsocketConsumer):
                     
                     if self in self.clients[self.group_name]:
                         self.clients[self.group_name].remove(self)
-                        logging.info(f"Removed client from group {self.group_name}")
+                        # logging.info(f"Removed client from group {self.group_name}")
                     
                     if not self.clients[self.group_name]:
                         del self.clients[self.group_name]
-                        logging.info(f"Deleted empty group {self.group_name}")
+                        # logging.info(f"Deleted empty group {self.group_name}")
                     
-                    logging.info(f"After cleanup - Number of groups: {len(self.clients)}")
-                    logging.info(f"Groups remaining: {list(self.clients.keys())}")
+                    # logging.info(f"After cleanup - Number of groups: {len(self.clients)}")
+                    # logging.info(f"Groups remaining: {list(self.clients.keys())}")
             except Exception as e:
                 logging.warning(f"Error cleaning up clients: {str(e)}")
     
             # Toujours envoyer la requête de cleanup, même en cas d'erreur
             try:
-                logging.info(f"Sending cleanup request for game_id: {self.game_id}")
+                # logging.info(f"Sending cleanup request for game_id: {self.game_id}")
                 await self.send_cleanup_request()
-                logging.info(f"Sent cleanup for game_id: {self.game_id}")
+                # logging.info(f"Sent cleanup for game_id: {self.game_id}")
             except Exception as e:
                 logging.warning(f"Error in cleanup request: {str(e)}")
     
@@ -559,7 +559,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                         data = self.generate_gameover_data()
                         await self.send_gameover_to_remaining_client(data)
                     except Exception as e:
-                        logging.warning(f"Error sending gameover: {str(e)}")
+                        pass
 
         except Exception as e:
             logging.error(f"Error in disconnect: {str(e)}")
@@ -600,7 +600,7 @@ class PongConsumer(AsyncWebsocketConsumer):
                 remaining_client = client
                 break
         if remaining_client is not None:
-            logging.info(f"Sending gameover event to remaining client, data: {data}")
+            # logging.info(f"Sending gameover event to remaining client, data: {data}")
             await remaining_client.send(json.dumps(data))
 
     async def generate_headers(self, token):
@@ -637,47 +637,47 @@ class PongConsumer(AsyncWebsocketConsumer):
         return winner
 #******************************DISCONNECT********************************
 
-    async def parse_received_event(self, event):
-        if event is None:
-            logging.error("0")
-            return False
-        if "type" not in event:
-            logging.error("1")
-            return False
-        if event["type"] == "greetings":
-            if event["sender"] not in ["front", "cli", "AI"] or len(event) < 2 or len(event) > 3:
-                # check if name is valid
-                logging.error("2")
-                return False
+    # async def parse_received_event(self, event):
+    #     if event is None:
+    #         logging.error("0")
+    #         return False
+    #     if "type" not in event:
+    #         logging.error("1")
+    #         return False
+    #     if event["type"] == "greetings":
+    #         if event["sender"] not in ["front", "cli", "AI"] or len(event) < 2 or len(event) > 3:
+    #             # check if name is valid
+    #             logging.error("2")
+    #             return False
 
-        elif event["type"] == "start":
-            if event["sender"] not in ["front", "cli"] or event["data"] != "init" or len(event) != 3 :
-                logging.error("3")
-                return False
+    #     elif event["type"] == "start":
+    #         if event["sender"] not in ["front", "cli"] or event["data"] != "init" or len(event) != 3 :
+    #             logging.error("3")
+    #             return False
 
-        elif event["type"] == "keyDown":
-            if event["sender"] not in ["front", "cli"]:
-                logging.error("4")
-                return False
-            if event["event"] not in ["player1Up", "player1Down", "player2Up", "player2Down"]:
-                return False
-            if event["sender"] == "front":
-                if len(event) != 5:
-                    return False
-            if event["sender"] == "cli":
-                if len(event) != 3:
-                    return False
+    #     elif event["type"] == "keyDown":
+    #         if event["sender"] not in ["front", "cli"]:
+    #             logging.error("4")
+    #             return False
+    #         if event["event"] not in ["player1Up", "player1Down", "player2Up", "player2Down"]:
+    #             return False
+    #         if event["sender"] == "front":
+    #             if len(event) != 5:
+    #                 return False
+    #         if event["sender"] == "cli":
+    #             if len(event) != 3:
+    #                 return False
 
-        elif event["type"] == "move":
-            if event["sender"] not in ["AI"] or len(event) != 3 or event["direction"] not in ["up", "down", "still"]:
-                logging.error("5")
-                return False
+    #     elif event["type"] == "move":
+    #         if event["sender"] not in ["AI"] or len(event) != 3 or event["direction"] not in ["up", "down", "still"]:
+    #             logging.error("5")
+    #             return False
 
-        elif event["type"] == "resumeOnGoal":
-            if event["sender"] not in ["front", "cli"] or len(event) != 2:
-                logging.error("6")
-                return False
-        return True
+    #     elif event["type"] == "resumeOnGoal":
+    #         if event["sender"] not in ["front", "cli"] or len(event) != 2:
+    #             logging.error("6")
+    #             return False
+    #     return True
 
     async def receive(self, text_data):
         # Traiter les messages reçus du client
@@ -686,10 +686,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             self.message_timestamp = time.time()
             try:
                 event = json.loads(text_data)
-                # logging.info(f"Received event: {event}")
-                # if await self.parse_received_event(event) is False:
-                    # await self.close(4004)
-                    # return
                 if event["sender"] == "front" or event["sender"] == "cli":
                     await self.handle_front_input(event)
                 elif event["sender"] == "AI":
@@ -702,12 +698,12 @@ class PongConsumer(AsyncWebsocketConsumer):
                 await self.disconnect(4004)
                 await self.close(4004)
                 return
-        else:
-            logging.info(f"SPAMMMMMMMMMMMMMMMMMMMMM")
+        # else:
+        #     logging.info(f"SPAMMMMMMMMMMMMMMMMMMMMM")
 
     
     async def handle_game_input(self, event):
-        logging.info(f"got in game_input: {event}")
+        # logging.info(f"got in game_input: {event}")
         if event["type"] == "gameover":
             await self.disconnect(4003)
             await self.close(4003)
@@ -748,16 +744,16 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def get_player_name(self, event):
-        logging.info(f"got in get_player_name: {event}")
+        # logging.info(f"got in get_player_name: {event}")
         if "name" not in event:
-            logging.error("got no name")
-            logging.info(f"present_players: {self.game_wrapper.present_players}, all_players_connected: {self.game_wrapper.all_players_connected}")
+            # logging.error("got no name")
+            # logging.info(f"present_players: {self.game_wrapper.present_players}, all_players_connected: {self.game_wrapper.all_players_connected}")
             if self.game_wrapper.present_players == 2:
                 self.game_wrapper.received_names.set()
-                logging.info("received names set, DIDNT RECEIVE ANY")
+                # logging.info("received names set, DIDNT RECEIVE ANY")
             return
         names = event["name"]
-        logging.info(f"received names: {names}")
+        # logging.info(f"received names: {names}")
         if len(names) != 2:
             if self.side == "p1":
                 self.game_wrapper.player_1.name = event["name"][0]
@@ -786,9 +782,9 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def handle_front_input(self, event):
         self.client = ClientType.FRONT
-        logging.info(f"got in handle_front_input: {event}")
+        # logging.info(f"got in handle_front_input: {event}")
         if event["type"] == "resumeOnGoal":
-            logging.info(f"got resumeOnGoal")
+            # logging.info(f"got resumeOnGoal")
             if self.mode == "PVP_LAN":
                 if self.side == "p1":
                     self.game_wrapper.player_1.is_ready_for_next_point = True
@@ -827,8 +823,8 @@ class PongConsumer(AsyncWebsocketConsumer):
                     self.game_wrapper.start_event.set()
 
         elif event["type"] == "keyDown" and self.sleeping is False:
-            logging.info("got keydown from front")
-            logging.info(f"mode: {self.mode}")
+            # logging.info("got keydown from front")
+            # logging.info(f"mode: {self.mode}")
             # logging.info(f"GameModePVP_KEYBOARD: {GameMode.PVP_KEYBOARD.value}")
             # if event["event"] == "pause":
             #     if self.mode == GameMode.PVE.value or self.mode == GameMode.PVP_KEYBOARD.value:
@@ -852,23 +848,23 @@ class PongConsumer(AsyncWebsocketConsumer):
 
     async def generate_states(self):
         try:
-            self.logger.info("in generate states")
+            # self.logger.info("in generate states")
             await self.game_wrapper.ai_is_initialized.wait()
-            self.logger.info("in generate states, ai is initialized")
+            # self.logger.info("in generate states, ai is initialized")
             await self.game_wrapper.received_names.wait()
-            self.logger.info("in generate states, names received")
+            # self.logger.info("in generate states, names received")
             await self.game_wrapper.start_event.wait()
-            self.logger.info("state gen set")
+            # self.logger.info("state gen set")
             x = 0
             self.sleeping = True
             await asyncio.sleep(2)
             self.sleeping = False
-            logging.info("starting game")
+            # logging.info("starting game")
             
             async for state in self.game_wrapper.game.rungame():
                 # Vérifier si game_wrapper existe encore
                 if not hasattr(self, 'game_wrapper') or self.game_wrapper is None:
-                    logging.info("Game wrapper no longer exists, stopping generate_states")
+                    # logging.info("Game wrapper no longer exists, stopping generate_states")
                     return
                     
                 state_dict = json.loads(state)
@@ -888,7 +884,7 @@ class PongConsumer(AsyncWebsocketConsumer):
     
                     # Vérifier à nouveau si le groupe existe encore
                     if not hasattr(self, 'group_name') or self.group_name not in self.clients:
-                        logging.info("Group no longer exists, stopping generate_states")
+                        # logging.info("Group no longer exists, stopping generate_states")
                         return
     
                     for client in self.clients[self.group_name]:
@@ -941,27 +937,13 @@ class PongConsumer(AsyncWebsocketConsumer):
                 await asyncio.sleep(0)
 
     async def determine_winner(self, state_dict, winner, client):
-#         # logging.info(f"in determine winner")
-        # if state_dict["game_mode"] != GameMode.PVP_KEYBOARD.value:
-        #     if winner == '1':
-        #         if client.side == "p1":
-        #             state_dict["winner"] = "self"
-        #         else:
-        #             state_dict["winner"] = "adversary"
-        #     else:
-        #         if client.side == "p2":
-        #             state_dict["winner"] = "self"
-        #         else:
-        #             state_dict["winner"] = "adversary"
-        # else:
         state_dict["winner"] = winner
-#         # logging.info(f"state dict return determine_winner: {state_dict}")
         return state_dict
 
     async def handle_gameover_score_limit(self):
         try:
             url = 'http://nginx:7777/game/new/'
-            csrf_token = self.scope['session'].get('csrf_token', get_new_csrf_string_async())
+            csrf_token = await self.scope['session'].get('csrf_token', get_new_csrf_string_async())
             data = self.generate_gameover_data()
 
             async with aiohttp.ClientSession() as session:
@@ -980,7 +962,4 @@ class PongConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             logging.error(f"Error sending gameover event: {str(e)}\n\n\n\n")
 
-
-
-{"type": "name", "name": "<name1>"}
 
