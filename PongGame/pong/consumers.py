@@ -65,6 +65,7 @@ class PongConsumer(AsyncWebsocketConsumer):
             logging.error(f"Erreur décodage base64: {str(e)}")
             return None
 
+
     async def verify_token(self):
         """
         Vérifie le token d'authentification dans les sous-protocoles WebSocket.
@@ -145,8 +146,15 @@ class PongConsumer(AsyncWebsocketConsumer):
 
 
     async def connect(self):
+        
+        # jwt_token = self.scope["query_string"].decode("utf-8")
 
         # logging.info(f"tentative de Connexion de {self.scope['user']}")
+        if not await self.verify_token():
+            logging.info(f"verify token is false")
+            await self.disconnect(4001)
+            await self.close(4001)
+            return
 
         await self._setup_csrf()
         if not await self.verify_game_uid():
@@ -156,11 +164,6 @@ class PongConsumer(AsyncWebsocketConsumer):
             return
         # else:
 #             logging.info("verify uid ok")
-        if not await self.verify_token():
-            # logging.info(f"verify token is false")
-            await self.disconnect(4001)
-            await self.close(4001)
-            return
         # else:
 #             logging.info("verify token ok")
 
@@ -168,9 +171,14 @@ class PongConsumer(AsyncWebsocketConsumer):
 
         self.group_name = f"pong_{self.game_id}"
         await self.channel_layer.group_add(self.group_name, self.channel_name)
+        
         if self.group_name not in self.clients:
             self.clients[self.group_name] = []
-        self.clients[self.group_name].append(self)
+        if len(self.clients[self.group_name]) == 2:
+            logging.info(f"Group {self.group_name} is full")
+            await self.close(4005)
+        else:
+            self.clients[self.group_name].append(self)
         # logging.info(f"in connect, number of groups: {len(self.clients)}\nName of groups: {self.clients.keys()}\nsize of current group[channel_name]: {len(self.clients[self.group_name])}")
 
 
@@ -203,12 +211,14 @@ class PongConsumer(AsyncWebsocketConsumer):
             # logging.info(f"payload: {payload}")
             username = payload['username']
             # logging.info(f"username: {username}")
-            if username == 'guest':
+            if username.startswith('guest'):
                 return
             if self.side == "p1":
                 self.game_wrapper.player_1.name = username
+                logging.info(f"self.game_wrapper.player_1.name: {self.game_wrapper.player_1.name}")
             else:
                 self.game_wrapper.player_2.name = username
+                logging.info(f"self.game_wrapper.player_2.name: {self.game_wrapper.player_2.name}")
 
         except Exception as e:
             logging.error(f"Error in get_name_from_jwt: {e}")
@@ -490,6 +500,11 @@ class PongConsumer(AsyncWebsocketConsumer):
             logging.error(f"Error sending stats: {str(e)}")
 
     async def disconnect(self, close_code):
+        # 2 joueurs sont deja presents
+        logging.info(f"Disconnect, code: {close_code}")
+        if close_code == 1006:
+            logging.info(f"Disconnect for instance {id(self)}")
+            return
         try:
             if self.mode == "PVP_LAN":
                 await self.send_user_stats()
@@ -609,7 +624,8 @@ class PongConsumer(AsyncWebsocketConsumer):
         headers = {
             'Content-Type': 'application/json',
             'X-CSRFToken': token,
-            "Authorization": f"{os.getenv('GAME_SERVICE_TOKEN')}"
+            "Authorization": f"{os.getenv('GAME_SERVICE_TOKEN')}",
+            "Client_token": self.jwt_token
         }
         return headers
 
